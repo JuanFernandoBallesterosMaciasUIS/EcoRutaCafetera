@@ -1,0 +1,35 @@
+name: ecoruta_cafetera
+description: Sistema territorial de censo cafetero para Santander - EcoRuta Cafetera
+publish_to: 'none'
+version: 2.4.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Navigation
+  go_router: ^14.6.1
+  
+  # State management
+  flutter_riverpod: ^2.6.1
+  
+  # Icons & Fonts
+  google_fonts: ^6.2.1
+  
+  # Connectivity
+  connectivity_plus: ^6.1.1
+  
+  # Animations
+  flutter_animate: ^4.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

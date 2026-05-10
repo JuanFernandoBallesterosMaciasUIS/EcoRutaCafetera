@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoRuta - Panel Técnico</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#e2bdb0",
+                        "on-secondary-fixed-variant": "#005313",
+                        "background": "#f9f9f9",
+                        "secondary-fixed-dim": "#78dc77",
+                        "surface-container-high": "#e8e8e8",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f1f1f1",
+                        "surface-container-low": "#f3f3f3",
+                        "primary-fixed": "#acf4a4",
+                        "secondary-container": "#91f78e",
+                        "primary-fixed-dim": "#91d78a",
+                        "secondary-fixed": "#94f990",
+                        "on-tertiary-fixed-variant": "#5b4137",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002204",
+                        "on-primary-fixed-variant": "#0c5216",
+                        "on-background": "#1a1c1c",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#00450d",
+                        "surface-variant": "#e2e2e2",
+                        "outline-variant": "#c0c9bb",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#1b5e20",
+                        "surface-bright": "#f9f9f9",
+                        "tertiary-fixed": "#ffdbce",
+                        "surface-tint": "#2a6b2c",
+                        "tertiary": "#4d352b",
+                        "on-tertiary-fixed": "#2b160f",
+                        "on-secondary-container": "#00731e",
+                        "inverse-surface": "#2f3131",
+                        "on-surface": "#1a1c1c",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-container": "#eeeeee",
+                        "surface": "#f9f9f9",
+                        "tertiary-fixed-dim": "#e4beb2",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#91d78a",
+                        "on-primary-fixed": "#002203",
+                        "secondary": "#006e1c",
+                        "surface-dim": "#dadada",
+                        "on-surface-variant": "#41493e",
+                        "outline": "#717a6d",
+                        "tertiary-container": "#674b41",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#90d689",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "container-margin": "16px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "xs": "4px",
+                        "gutter": "12px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "label-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            background-color: #f9f9f9;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface docked full-width top-0 border-b border-outline-variant flex justify-between items-center w-full px-md h-14 z-50">
+<div class="flex items-center gap-sm">
+<button class="material-symbols-outlined text-primary p-2 hover:bg-surface-container-low transition-colors rounded-full active:opacity-80 active:scale-95">menu</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">EcoRuta</h1>
+</div>
+<button class="flex items-center gap-xs px-3 py-1.5 rounded-full border border-primary text-primary hover:bg-surface-container-low transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">sync</span>
+<span class="font-label-lg text-label-lg">Sync</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-md mx-auto px-md py-lg space-y-lg pb-32">
+<!-- Profile Section -->
+<section class="bg-surface-container-lowest rounded-xl p-md flex items-center gap-md shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant/30">
+<div class="relative">
+<img class="w-16 h-16 rounded-full object-cover border-2 border-primary-fixed" data-alt="A professional headshot of a Hispanic male field technician in his late 30s with a warm, confident expression. He is wearing a practical outdoor work shirt. The background is a soft-focus lush green coffee plantation under bright morning sunlight, maintaining a high-key Corporate Modern aesthetic with organic tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe6BOHffi9OyAqV1SF99kcsRUpLJ8qTkozJwyw8PeR3-oNdk62Iv7jEyu_oYR2sZwYznZYnhOXLycmokEbcHE7TFyDMS4KdlN3kNT_JWcO9666CHq2f2UfbX76C0yx4w0UyUEOAtWZCUVZD0UqHTHertWq2GdqgraqpyfFylQORENZqFMykzP8snQuO7PwdOkoVqJ0bx9RB8yYqPX-Jvp2f61UdJqpbc1uarbvYfXlfqaqAgh6zYhlxzbxGo2E481Q6zwqVoPcTT0"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-secondary border-2 border-surface rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-unit">Hola,</p>
+<h2 class="font-headline-sm text-headline-sm text-primary">Iván Martínez</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Técnico de campo</p>
+<div class="flex items-center gap-xs mt-unit">
+<span class="material-symbols-outlined text-[14px] text-primary">location_on</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Municipio: Barbosa</span>
+</div>
+</div>
+</section>
+<!-- Primary Actions (Quick Launch) -->
+<section class="grid grid-cols-1 gap-md">
+<!-- Action 1: Registrar Finca -->
+<button class="group flex items-center justify-between bg-surface-container-lowest border-2 border-outline-variant p-lg rounded-xl hover:bg-surface-container transition-all active:scale-[0.98]">
+<div class="flex items-center gap-md">
+<div class="bg-primary-container p-3 rounded-lg text-on-primary-container group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]">add_home</span>
+</div>
+<div class="text-left">
+<p class="font-headline-sm text-headline-sm text-primary">Registrar Finca</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Dar de alta un nuevo predio</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+<!-- Action 2: Iniciar Ruta GPS (Dark Primary) -->
+<button class="group flex items-center justify-between bg-primary p-lg rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-[0.98]">
+<div class="flex items-center gap-md text-on-primary">
+<div class="bg-white/10 p-3 rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">route</span>
+</div>
+<div class="text-left">
+<p class="font-headline-sm text-headline-sm">Iniciar Ruta GPS</p>
+<p class="font-body-md text-body-md text-primary-fixed">Trazar recorrido de campo</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary-fixed">chevron_right</span>
+</button>
+<!-- Action 3: Capturar Indicadores -->
+<button class="group flex items-center justify-between bg-surface-container-lowest border-2 border-outline-variant p-lg rounded-xl hover:bg-surface-container transition-all active:scale-[0.98]">
+<div class="flex items-center gap-md">
+<div class="bg-tertiary-container p-3 rounded-lg text-on-tertiary-container group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<div class="text-left">
+<p class="font-headline-sm text-headline-sm text-primary">Capturar Indicadores</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Formularios de sostenibilidad</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+</section>
+<!-- Pending Sync Card -->
+<section class="bg-tertiary-fixed text-on-tertiary-fixed rounded-xl p-md border border-tertiary-fixed-dim/50 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="bg-tertiary-container/20 p-2 rounded-full">
+<span class="material-symbols-outlined text-tertiary">cloud_sync</span>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg font-bold">Pendientes Sync</h3>
+<p class="font-body-md text-body-md opacity-90">12 registros por sincronizar</p>
+</div>
+</div>
+<button class="p-2 rounded-full hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center py-sm h-18">
+<!-- Inicio (Active) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm">Inicio</span>
+</a>
+<!-- Fincas -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-label-sm text-label-sm">Fincas</span>
+</a>
+<!-- Mapa -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-sm text-label-sm">Mapa</span>
+</a>
+<!-- Más -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-sm text-label-sm">Más</span>
+</a>
+</nav>
+</body></html>

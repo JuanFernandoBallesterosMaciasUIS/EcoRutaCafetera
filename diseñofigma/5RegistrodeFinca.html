@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#e2bdb0",
+                        "on-secondary-fixed-variant": "#005313",
+                        "background": "#f9f9f9",
+                        "secondary-fixed-dim": "#78dc77",
+                        "surface-container-high": "#e8e8e8",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f1f1f1",
+                        "surface-container-low": "#f3f3f3",
+                        "primary-fixed": "#acf4a4",
+                        "secondary-container": "#91f78e",
+                        "primary-fixed-dim": "#91d78a",
+                        "secondary-fixed": "#94f990",
+                        "on-tertiary-fixed-variant": "#5b4137",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002204",
+                        "on-primary-fixed-variant": "#0c5216",
+                        "on-background": "#1a1c1c",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#00450d",
+                        "surface-variant": "#e2e2e2",
+                        "outline-variant": "#c0c9bb",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#1b5e20",
+                        "surface-bright": "#f9f9f9",
+                        "tertiary-fixed": "#ffdbce",
+                        "surface-tint": "#2a6b2c",
+                        "tertiary": "#4d352b",
+                        "on-tertiary-fixed": "#2b160f",
+                        "on-secondary-container": "#00731e",
+                        "inverse-surface": "#2f3131",
+                        "on-surface": "#1a1c1c",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-container": "#eeeeee",
+                        "surface": "#f9f9f9",
+                        "tertiary-fixed-dim": "#e4beb2",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#91d78a",
+                        "on-primary-fixed": "#002203",
+                        "secondary": "#006e1c",
+                        "surface-dim": "#dadada",
+                        "on-surface-variant": "#41493e",
+                        "outline": "#717a6d",
+                        "tertiary-container": "#674b41",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#90d689",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "container-margin": "16px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "xs": "4px",
+                        "gutter": "12px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "label-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Hanken Grotesk', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flex justify-between items-center w-full px-md h-14 sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<button class="text-primary dark:text-primary-fixed hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">EcoRuta</h1>
+</div>
+<button class="text-primary dark:text-primary-fixed hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">sync</span>
+</button>
+</header>
+<!-- Main Content: Registro de Finca Form -->
+<main class="flex-grow p-md pb-32">
+<div class="max-w-md mx-auto space-y-6">
+<header class="flex items-center gap-2">
+<button class="p-1">
+<span class="material-symbols-outlined text-on-surface">arrow_back</span>
+</button>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Nueva Finca</h2>
+</header>
+<form class="space-y-4">
+<!-- Text Inputs -->
+<div class="space-y-4">
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Nombre de la finca</label>
+<input class="w-full bg-surface-container-lowest border border-outline px-md py-3 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-body-md" placeholder="Ej: La Esperanza" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Propietario</label>
+<input class="w-full bg-surface-container-lowest border border-outline px-md py-3 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-body-md" placeholder="Nombre completo" type="text"/>
+</div>
+<!-- Selectors -->
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Municipio</label>
+<select class="w-full bg-surface-container-lowest border border-outline px-md py-3 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-body-md appearance-none">
+<option value="">Seleccione municipio</option>
+<option value="barbosa">Barbosa</option>
+<option value="velez">Vélez</option>
+<option value="landazuri">Landázuri</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Vereda</label>
+<input class="w-full bg-surface-container-lowest border border-outline px-md py-3 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-body-md" placeholder="Ej: Mata de Cacao" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface-variant px-1">Variedad de café</label>
+<select class="w-full bg-surface-container-lowest border border-outline px-md py-3 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-body-md appearance-none">
+<option value="">Seleccione variedad</option>
+<option value="castillo">Castillo</option>
+<option value="caturra">Caturra</option>
+<option value="pajarito">Pajarito</option>
+</select>
+</div>
+</div>
+<!-- GPS Section -->
+<div class="bg-surface-container-low p-md rounded-xl border border-outline-variant space-y-3">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined">location_on</span>
+<h3 class="font-label-lg text-label-lg">Coordenadas GPS</h3>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div class="space-y-1">
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Latitud</span>
+<div class="bg-surface-container px-3 py-2 rounded-lg font-mono text-body-md">6.481234</div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Longitud</span>
+<div class="bg-surface-container px-3 py-2 rounded-lg font-mono text-body-md">-73.628765</div>
+</div>
+</div>
+<button class="w-full bg-secondary text-on-secondary py-2 rounded-lg font-label-lg flex items-center justify-center gap-2 hover:bg-on-secondary-container transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">my_location</span>
+                        Capturar ubicación
+                    </button>
+</div>
+<!-- Photo Section -->
+<div class="space-y-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">photo_camera</span>
+<h3 class="font-label-lg text-label-lg text-on-surface-variant">Foto de la finca</h3>
+</div>
+<div class="flex gap-md items-center">
+<div class="relative w-32 h-24 bg-surface-container rounded-lg overflow-hidden border border-outline-variant group">
+<img class="w-full h-full object-cover" data-alt="A lush green coffee plantation under a bright morning sun in a mountainous region. Rows of healthy coffee plants lead toward a traditional wooden farmhouse in the distance. The atmosphere is crisp and productive, with vibrant earth tones and deep forest greens dominating the landscape. Professional agricultural photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBV6ZuEOfnNT5y_6sEybWXFa7R_MYwYc-25nEqW9vcSd2S9PGtCvMecr2Vktv2Pb_MWmBaLCgYuxzZyhboQgtChcXuBbzYpNxU2JbLaRTXd0OCiw3qBqDNi2z4MEiuTBtuNJAWyHTRbiNuqSZYHqm9XzS9Z_AxtqFeo6JK7Lc0gsq-5PYYGi2b_RR5oI8vmwH5NTm82S--OPC_oIDBtlRMzOtKrk_CorGOB7AyMk13leBgJSHWOnSLFKn9Ep6LnwHIh2Rp25Vd6DUg"/>
+<button class="absolute top-1 right-1 bg-error text-on-error rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<button class="w-24 h-24 border-2 border-dashed border-outline-variant rounded-lg flex flex-col items-center justify-center text-outline hover:border-primary hover:text-primary transition-all" type="button">
+<span class="material-symbols-outlined text-[32px]">add_a_photo</span>
+<span class="text-[10px] mt-1 font-bold">AÑADIR</span>
+</button>
+</div>
+</div>
+<!-- Consent -->
+<label class="flex items-start gap-3 p-md bg-surface-container-lowest rounded-xl border border-outline-variant cursor-pointer group">
+<div class="relative flex items-center pt-0.5">
+<input checked="" class="peer h-5 w-5 rounded border-outline text-primary focus:ring-primary cursor-pointer transition-colors" type="checkbox"/>
+</div>
+<span class="text-body-md text-on-surface-variant leading-tight">
+                        He leído y acepto el consentimiento informado para el manejo de datos (Ley 1581/2012)
+                    </span>
+</label>
+<!-- Submit Action -->
+<button class="w-full bg-primary text-on-primary py-4 rounded-xl font-headline-sm flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all mt-8" type="submit">
+<span class="material-symbols-outlined">save_as</span>
+                    Guardar Offline
+                </button>
+</form>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container dark:bg-surface-container-lowest shadow-[0_-2px_10px_rgba(0,0,0,0.05)] dark:shadow-none flex justify-around items-center py-sm">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-colors rounded-xl" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Inicio</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-label-sm text-label-sm">Fincas</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-colors rounded-xl" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-sm text-label-sm">Mapa</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-colors rounded-xl" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-sm text-label-sm">Más</span>
+</a>
+</nav>
+</body></html>

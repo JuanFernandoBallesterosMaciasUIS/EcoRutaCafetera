@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoRuta - Panel Administrador</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#e2bdb0",
+                    "on-secondary-fixed-variant": "#005313",
+                    "background": "#f9f9f9",
+                    "secondary-fixed-dim": "#78dc77",
+                    "surface-container-high": "#e8e8e8",
+                    "on-error-container": "#93000a",
+                    "inverse-on-surface": "#f1f1f1",
+                    "surface-container-low": "#f3f3f3",
+                    "primary-fixed": "#acf4a4",
+                    "secondary-container": "#91f78e",
+                    "primary-fixed-dim": "#91d78a",
+                    "secondary-fixed": "#94f990",
+                    "on-tertiary-fixed-variant": "#5b4137",
+                    "error": "#ba1a1a",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#002204",
+                    "on-primary-fixed-variant": "#0c5216",
+                    "on-background": "#1a1c1c",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#00450d",
+                    "surface-variant": "#e2e2e2",
+                    "outline-variant": "#c0c9bb",
+                    "error-container": "#ffdad6",
+                    "primary-container": "#1b5e20",
+                    "surface-bright": "#f9f9f9",
+                    "tertiary-fixed": "#ffdbce",
+                    "surface-tint": "#2a6b2c",
+                    "tertiary": "#4d352b",
+                    "on-tertiary-fixed": "#2b160f",
+                    "on-secondary-container": "#00731e",
+                    "inverse-surface": "#2f3131",
+                    "on-surface": "#1a1c1c",
+                    "surface-container-highest": "#e2e2e2",
+                    "surface-container": "#eeeeee",
+                    "surface": "#f9f9f9",
+                    "tertiary-fixed-dim": "#e4beb2",
+                    "on-secondary": "#ffffff",
+                    "inverse-primary": "#91d78a",
+                    "on-primary-fixed": "#002203",
+                    "secondary": "#006e1c",
+                    "surface-dim": "#dadada",
+                    "on-surface-variant": "#41493e",
+                    "outline": "#717a6d",
+                    "tertiary-container": "#674b41",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#90d689",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "md": "16px",
+                    "container-margin": "16px",
+                    "sm": "8px",
+                    "unit": "4px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "xs": "4px",
+                    "gutter": "12px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Hanken Grotesk"],
+                    "headline-sm": ["Hanken Grotesk"],
+                    "headline-lg": ["Hanken Grotesk"],
+                    "label-sm": ["Hanken Grotesk"],
+                    "label-lg": ["Hanken Grotesk"],
+                    "headline-md": ["Hanken Grotesk"],
+                    "body-md": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface flex h-screen overflow-hidden">
+<!-- Navigation Drawer (Sidebar) -->
+<aside class="hidden md:flex flex-col h-full w-72 bg-primary border-r border-outline-variant py-lg shrink-0 overflow-y-auto">
+<div class="px-lg mb-xl">
+<h1 class="font-headline-md text-headline-md text-on-primary font-bold">EcoRuta</h1>
+<p class="font-label-sm text-label-sm text-on-primary/80">Gestión Territorial</p>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="bg-primary-container text-on-primary-container rounded-lg mx-2 my-1 px-4 py-3 font-bold flex items-center gap-3">
+<span class="material-symbols-outlined filled-icon">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</div>
+<div class="text-on-primary/70 hover:bg-white/10 mx-2 my-1 px-4 py-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">map</span>
+<span class="font-body-md text-body-md">Mapa de Fincas</span>
+</div>
+<div class="text-on-primary/70 hover:bg-white/10 mx-2 my-1 px-4 py-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">Reportes</span>
+</div>
+<div class="text-on-primary/70 hover:bg-white/10 mx-2 my-1 px-4 py-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">Usuarios</span>
+</div>
+<div class="text-on-primary/70 hover:bg-white/10 mx-2 my-1 px-4 py-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">route</span>
+<span class="font-body-md text-body-md">Rutas GPS</span>
+</div>
+<div class="text-on-primary/70 hover:bg-white/10 mx-2 my-1 px-4 py-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Configuración</span>
+</div>
+</nav>
+<div class="mt-auto px-lg pt-lg border-t border-white/10">
+<div class="flex items-center gap-3 text-on-primary/70 cursor-pointer hover:text-on-primary">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Cerrar sesión</span>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center w-full px-lg h-16 bg-surface border-b border-outline-variant sticky top-0 z-10">
+<div class="flex items-center gap-lg">
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="font-headline-sm text-headline-sm text-primary font-bold">Dashboard</h2>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<div class="flex items-center gap-sm bg-surface-container-low px-sm py-1 rounded-full border border-outline-variant">
+<img alt="Admin Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A professional headshot of a middle-aged male administrator with a confident smile. He is set against a clean, blurred office background. The lighting is soft and professional, emphasizing a modern corporate aesthetic. The color palette is natural and warm, blending perfectly with a high-end UI design system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATi1nbWrddZZcNuM-V7J7uekTaq9Dv80ReeldCgGuquGj2LQEUw4rt8IN1wxHOkpJ5_mVPsxOI-we1_UzujIXxduKGOW5TIa8aMOkYdVV5sJB2WVLnfS8a_-PC5-GcK6H4_dbC1_X57KfWruI0O8QwbBjZ06ktQttGIGTqzrOS7ijIfXC78vx3BFrC2A5UPOKIK8o-rN7CS4Gi-ABL9yxW-6MLqRL1Z0BH1FlODoeFiFIV-tFEIVonBxqr8e13apWma5Ax9rofDDs"/>
+<div class="hidden sm:block pr-2">
+<p class="font-label-lg text-label-lg leading-none">Iván Martínez</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Administrador</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-lg lg:p-xl space-y-lg">
+<!-- Summary Stats (Top Cards) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Stat 1 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant flex items-center gap-md">
+<div class="w-12 h-12 bg-primary-container/10 text-primary-container rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px] filled-icon">agriculture</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md font-bold text-on-background">1,248</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Fincas registradas</p>
+</div>
+</div>
+<!-- Stat 2 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant flex items-center gap-md">
+<div class="w-12 h-12 bg-secondary-container/20 text-secondary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px] filled-icon">engineering</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md font-bold text-on-background">34</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Técnicos activos</p>
+</div>
+</div>
+<!-- Stat 3 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant flex items-center gap-md">
+<div class="w-12 h-12 bg-tertiary-fixed/30 text-tertiary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px] filled-icon">pending_actions</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md font-bold text-on-background">12</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Pendientes de sync</p>
+</div>
+</div>
+<!-- Stat 4 -->
+<div class="bg-surface-container-lowest p-md rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant flex items-center gap-md">
+<div class="w-12 h-12 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px] filled-icon">cloud_done</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md font-bold text-on-background">98%</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Sincronización</p>
+</div>
+</div>
+</div>
+<!-- Main Bento Grid -->
+<div class="grid grid-cols-12 gap-lg">
+<!-- Chart: Fincas por Municipio -->
+<div class="col-span-12 lg:col-span-5 bg-surface-container-lowest p-lg rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant">
+<div class="flex justify-between items-center mb-lg">
+<h3 class="font-label-lg text-label-lg text-on-surface">Fincas por municipio</h3>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">more_vert</span>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-xl">
+<!-- Simulated Donut Chart -->
+<div class="relative w-40 h-40 flex items-center justify-center">
+<div class="absolute inset-0 rounded-full border-[18px] border-primary/20"></div>
+<div class="absolute inset-0 rounded-full border-[18px] border-primary border-t-transparent border-l-transparent" style="transform: rotate(45deg);"></div>
+<div class="absolute inset-0 rounded-full border-[18px] border-secondary border-b-transparent border-r-transparent" style="transform: rotate(-30deg);"></div>
+<div class="text-center">
+<span class="font-headline-sm text-headline-sm font-bold block">1.2k</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Total</span>
+</div>
+</div>
+<!-- Legend -->
+<div class="flex-1 space-y-2 w-full">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="font-body-md text-body-md">Barbosa</span>
+</div>
+<span class="font-label-lg text-label-lg">412</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="font-body-md text-body-md">Vélez</span>
+</div>
+<span class="font-label-lg text-label-lg">298</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<span class="font-body-md text-body-md">Landázuri</span>
+</div>
+<span class="font-label-lg text-label-lg">210</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary-container"></div>
+<span class="font-body-md text-body-md">El Carmen</span>
+</div>
+<span class="font-label-lg text-label-lg">180</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Map View -->
+<div class="col-span-12 lg:col-span-7 bg-surface-container-lowest rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant overflow-hidden flex flex-col">
+<div class="p-lg flex justify-between items-center">
+<h3 class="font-label-lg text-label-lg text-on-surface">Mapa general de fincas</h3>
+<div class="flex items-center gap-sm">
+<span class="text-primary font-label-sm text-label-sm cursor-pointer">Ver pantalla completa</span>
+<span class="material-symbols-outlined text-primary text-sm">open_in_new</span>
+</div>
+</div>
+<div class="relative flex-1 min-h-[300px] bg-surface-variant">
+<img alt="Regional Map" class="w-full h-full object-cover" data-alt="A satellite view of a lush, mountainous agricultural region in Colombia, specifically showing high-altitude coffee plantations. The map features a professional GIS overlay with clean, minimalist markers in varying shades of green and red indicating farm locations. The aesthetic is clean and technical, using soft lighting to highlight topographical details." data-location="Santander, Colombia" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZHzLKEZjbWG2Mr1ogaFTN47nAs6YQDp5apua85jQN7v56drW5UY0BQ2AP1wvrmWVV9m3fZsVC6hx4V3zQkjHSDxEyF_LQXCckpxEXIRXXCvywTfT5O9CQc3IfRshwCGwgwEbJR2rGvl3SYRdqfZy7mNHZlxyc9SnmOFUwPt1t1J0mCQ6z3wGge1dRcXjaqV8mhTWGAt-Iqzwtq8Ut9hj2E1Qx-QGZyFQm1Ol2oLBs617mbaQLYQPCg0YrcA0RNv3rET6D0qoDrcw"/>
+<!-- Map Controls -->
+<div class="absolute right-4 top-4 flex flex-col gap-2">
+<button class="bg-white p-2 rounded-lg shadow-md hover:bg-surface-container"><span class="material-symbols-outlined">add</span></button>
+<button class="bg-white p-2 rounded-lg shadow-md hover:bg-surface-container"><span class="material-symbols-outlined">remove</span></button>
+</div>
+</div>
+</div>
+<!-- Environmental Indicators -->
+<div class="col-span-12 lg:col-span-6 bg-surface-container-lowest p-lg rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant">
+<h3 class="font-label-lg text-label-lg text-on-surface mb-lg">Indicadores ambientales (%)</h3>
+<div class="h-48 flex items-end justify-between gap-4 px-4 pb-4">
+<!-- Simple bar chart for demonstration -->
+<div class="w-full bg-primary/20 rounded-t-lg relative" style="height: 60%;">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm">60%</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-on-surface-variant">Ene</div>
+</div>
+<div class="w-full bg-primary/40 rounded-t-lg relative" style="height: 75%;">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm font-bold">75%</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-on-surface-variant">Feb</div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-lg relative" style="height: 65%;">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm">65%</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-on-surface-variant">Mar</div>
+</div>
+<div class="w-full bg-primary rounded-t-lg relative" style="height: 90%;">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm font-bold">90%</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-on-surface-variant">Abr</div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-lg relative" style="height: 70%;">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm">70%</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-on-surface-variant">May</div>
+</div>
+</div>
+</div>
+<!-- Last Activities List -->
+<div class="col-span-12 lg:col-span-6 bg-surface-container-lowest p-lg rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] border border-outline-variant">
+<h3 class="font-label-lg text-label-lg text-on-surface mb-lg">Últimas actividades</h3>
+<div class="space-y-md">
+<div class="flex items-start gap-md pb-md border-b border-outline-variant">
+<div class="w-10 h-10 bg-green-50 text-primary rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm">sync</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md"><span class="font-bold">Iván Martínez</span> sincronizó 12 registros de campo.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Hoy, 10:30 a. m.</p>
+</div>
+</div>
+<div class="flex items-start gap-md pb-md border-b border-outline-variant">
+<div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm">agriculture</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md">Nueva finca registrada: <span class="font-bold">La Esperanza</span>.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Hoy, 09:15 a. m.</p>
+</div>
+</div>
+<div class="flex items-start gap-md">
+<div class="w-10 h-10 bg-amber-50 text-amber-700 rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm">picture_as_pdf</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md"><span class="font-bold">Laura Sánchez</span> generó reporte ambiental PDF.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Ayer, 04:30 p. m.</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-lg py-2 border border-outline text-primary rounded-lg font-label-lg text-label-lg hover:bg-surface-container transition-colors">
+                        Ver todo el historial
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container flex justify-around items-center py-sm shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+<div class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1">
+<span class="material-symbols-outlined filled-icon">home</span>
+<span class="font-label-sm text-label-sm">Inicio</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-label-sm text-label-sm">Fincas</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-sm text-label-sm">Mapa</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-sm text-label-sm">Más</span>
+</div>
+</nav>
+</body></html>

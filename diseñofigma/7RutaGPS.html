@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-container": "#e2bdb0",
+            "on-secondary-fixed-variant": "#005313",
+            "background": "#f9f9f9",
+            "secondary-fixed-dim": "#78dc77",
+            "surface-container-high": "#e8e8e8",
+            "on-error-container": "#93000a",
+            "inverse-on-surface": "#f1f1f1",
+            "surface-container-low": "#f3f3f3",
+            "primary-fixed": "#acf4a4",
+            "secondary-container": "#91f78e",
+            "primary-fixed-dim": "#91d78a",
+            "secondary-fixed": "#94f990",
+            "on-tertiary-fixed-variant": "#5b4137",
+            "error": "#ba1a1a",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#002204",
+            "on-primary-fixed-variant": "#0c5216",
+            "on-background": "#1a1c1c",
+            "surface-container-lowest": "#ffffff",
+            "primary": "#00450d",
+            "surface-variant": "#e2e2e2",
+            "outline-variant": "#c0c9bb",
+            "error-container": "#ffdad6",
+            "primary-container": "#1b5e20",
+            "surface-bright": "#f9f9f9",
+            "tertiary-fixed": "#ffdbce",
+            "surface-tint": "#2a6b2c",
+            "tertiary": "#4d352b",
+            "on-tertiary-fixed": "#2b160f",
+            "on-secondary-container": "#00731e",
+            "inverse-surface": "#2f3131",
+            "on-surface": "#1a1c1c",
+            "surface-container-highest": "#e2e2e2",
+            "surface-container": "#eeeeee",
+            "surface": "#f9f9f9",
+            "tertiary-fixed-dim": "#e4beb2",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#91d78a",
+            "on-primary-fixed": "#002203",
+            "secondary": "#006e1c",
+            "surface-dim": "#dadada",
+            "on-surface-variant": "#41493e",
+            "outline": "#717a6d",
+            "tertiary-container": "#674b41",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#90d689",
+            "on-error": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "md": "16px",
+            "container-margin": "16px",
+            "sm": "8px",
+            "unit": "4px",
+            "lg": "24px",
+            "xl": "32px",
+            "xs": "4px",
+            "gutter": "12px"
+          },
+          "fontFamily": {
+            "body-lg": ["Hanken Grotesk"],
+            "headline-sm": ["Hanken Grotesk"],
+            "headline-lg": ["Hanken Grotesk"],
+            "label-sm": ["Hanken Grotesk"],
+            "label-lg": ["Hanken Grotesk"],
+            "headline-md": ["Hanken Grotesk"],
+            "body-md": ["Hanken Grotesk"]
+          },
+          "fontSize": {
+            "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+            "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+            "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+            "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr
+    }
+.map-container {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuDapyDEm-30O18ZYZqebERUsSOzSw4-elyGz3rBBJmjrWtFVaMUirF7MZ38ZNgH6aKXoSfLIsv-M8MLs3SNTe_rb1XWQLmOTlCixxZSdf_YB5ln73as64q_6yWZN6I2CPLoFOsGaWcr_9v69KZoml7I1REy4K8u9eS_fLjqt-IQOV850eV0l4GgM_39Er6kGBB-HXjUU9_o2nYdvpQ4-QCOn36IsgoygNIpswj8JskNyIpZzHITw3MD-MWUuj2TW_CjeaypUS2wlBo);
+    background-size: cover;
+    background-position: center
+    }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- Desktop Navigation Drawer -->
+<aside class="hidden md:flex flex-col h-full w-72 rounded-r-xl bg-surface border-r border-outline-variant shadow-xl py-lg shrink-0">
+<div class="px-md mb-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">EcoRuta</h1>
+</div>
+<div class="px-md mb-xl flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="Iván Martínez" data-alt="A professional headshot of a middle-aged man with a friendly expression, wearing a practical outdoor polo shirt suitable for field work. The background is a soft-focus lush green coffee plantation, reflecting an agricultural setting. The lighting is warm and natural, suggesting an early morning atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAM_XPRNS9ZdMV3vSiTiTw7xmR9JIYMHt0QVa2L3IvVfc3bjs9kP_ijPI6PwJd-wSsrq05EgiRYIfzjbc4sKEQmNpsPaZ7ar4_YmS80AtT9T9n9g2yHVCvBmmiW4WZDy_Xwue-7dah-xGk_ew44mnyTV5UZvQPjnIi-nkFZxBy38XD5I9N1btidGcT4paAOP8zwo9_SYyLU_6O7yyr6fFKcWrvIsN9a8FROrwpvc5VGuB9eoSOG0zEqVZmKTZBTOAcjqhrwk5_9OBk"/>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface">Iván Martínez</p>
+<p class="text-xs text-on-surface-variant">Técnico de campo</p>
+<p class="text-[10px] text-outline">Municipio: Barbosa</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="text-on-surface-variant mx-2 my-1 px-4 py-3 flex items-center gap-md hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="text-on-surface-variant mx-2 my-1 px-4 py-3 flex items-center gap-md hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-body-md text-body-md">Mapa de Fincas</span>
+</a>
+<a class="text-on-surface-variant mx-2 my-1 px-4 py-3 flex items-center gap-md hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">Reportes</span>
+</a>
+<a class="text-on-surface-variant mx-2 my-1 px-4 py-3 flex items-center gap-md hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">Usuarios</span>
+</a>
+<a class="bg-primary text-on-primary rounded-lg mx-2 my-1 px-4 py-3 font-bold flex items-center gap-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">route</span>
+<span class="font-body-md text-body-md">Rutas GPS</span>
+</a>
+<a class="text-on-surface-variant mx-2 my-1 px-4 py-3 flex items-center gap-md hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Configuración</span>
+</a>
+</nav>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 flex flex-col relative h-screen">
+<!-- Top App Bar (Mobile & Desktop Header) -->
+<header class="flex justify-between items-center w-full px-md h-14 bg-surface border-b border-outline-variant z-40 shrink-0">
+<div class="flex items-center gap-sm">
+<button class="md:hidden p-2 hover:bg-surface-container-low transition-colors rounded-full active:opacity-80 active:scale-95">
+<span class="material-symbols-outlined text-primary">menu</span>
+</button>
+<span class="font-headline-md text-headline-md font-bold text-primary">Ruta GPS</span>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-2 hover:bg-surface-container-low transition-colors rounded-full active:opacity-80 active:scale-95 text-primary">
+<span class="material-symbols-outlined">sync</span>
+</button>
+</div>
+</header>
+<!-- Map Content Area -->
+<div class="flex-1 relative overflow-hidden map-container" data-location="Barbosa, Colombia" style="">
+<!-- SVG Route Overlay (Simplified simulation) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none" viewbox="0 0 1000 1000">
+<path d="M 200,800 L 300,750 L 450,600 L 500,400 L 650,300 L 800,150" fill="none" stroke="#2a6b2c" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"></path>
+<!-- Markers -->
+<circle cx="200" cy="800" fill="#00450d" r="8"></circle>
+<circle cx="800" cy="150" fill="#ba1a1a" r="8"></circle>
+</svg>
+<!-- Floating Map Controls -->
+<div class="absolute right-md top-1/2 -translate-y-1/2 flex flex-col gap-sm">
+<button class="w-12 h-12 bg-surface rounded-full shadow-lg flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="w-12 h-12 bg-surface rounded-full shadow-lg flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<button class="w-12 h-12 bg-surface rounded-full shadow-lg flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+</div>
+<!-- Route Statistics Card (Bento Style) -->
+<div class="absolute bottom-20 md:bottom-md left-md right-md md:left-auto md:w-96 p-md bg-surface/95 backdrop-blur-md rounded-xl shadow-xl border border-outline-variant/30 z-30">
+<div class="grid grid-cols-3 gap-md mb-lg">
+<div class="flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Distancia</span>
+<span class="font-headline-sm text-headline-sm text-primary">2.35 km</span>
+</div>
+<div class="flex flex-col items-center border-x border-outline-variant">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Tiempo</span>
+<span class="font-headline-sm text-headline-sm text-primary">01:14:28</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Puntos GPS</span>
+<span class="font-headline-sm text-headline-sm text-primary">145</span>
+</div>
+</div>
+<div class="flex gap-sm">
+<button class="flex-1 h-12 bg-primary text-on-primary rounded-lg font-bold flex items-center justify-center gap-xs active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+            Iniciar
+          </button>
+<button class="flex-1 h-12 bg-[#f57c00] text-white rounded-lg font-bold flex items-center justify-center gap-xs active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pause</span>
+            Pausar
+          </button>
+<button class="flex-1 h-12 bg-error text-on-error rounded-lg font-bold flex items-center justify-center gap-xs active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">stop</span>
+            Finalizar
+          </button>
+</div>
+</div>
+</div>
+<!-- Mobile Bottom Navigation -->
+<nav class="md:hidden flex justify-around items-center w-full py-sm bg-surface-container fixed bottom-0 z-50 rounded-t-xl shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Inicio</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-label-sm text-label-sm">Fincas</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">map</span>
+<span class="font-label-sm text-label-sm font-bold">Mapa</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-colors active:scale-90" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-sm text-label-sm">Más</span>
+</a>
+</nav>
+</main>
+<!-- Full Background Image for Map Styling -->
+<style>
+    /* Custom overlay for professional map feel */
+    .map-container::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, transparent 0%, rgba(0,69,13,0.05) 100%);
+      pointer-events: none;
+    }
+  </style>
+</body></html>

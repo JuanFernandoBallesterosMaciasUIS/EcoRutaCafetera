@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#e2bdb0",
+                        "on-secondary-fixed-variant": "#005313",
+                        "background": "#f9f9f9",
+                        "secondary-fixed-dim": "#78dc77",
+                        "surface-container-high": "#e8e8e8",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f1f1f1",
+                        "surface-container-low": "#f3f3f3",
+                        "primary-fixed": "#acf4a4",
+                        "secondary-container": "#91f78e",
+                        "primary-fixed-dim": "#91d78a",
+                        "secondary-fixed": "#94f990",
+                        "on-tertiary-fixed-variant": "#5b4137",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002204",
+                        "on-primary-fixed-variant": "#0c5216",
+                        "on-background": "#1a1c1c",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#00450d",
+                        "surface-variant": "#e2e2e2",
+                        "outline-variant": "#c0c9bb",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#1b5e20",
+                        "surface-bright": "#f9f9f9",
+                        "tertiary-fixed": "#ffdbce",
+                        "surface-tint": "#2a6b2c",
+                        "tertiary": "#4d352b",
+                        "on-tertiary-fixed": "#2b160f",
+                        "on-secondary-container": "#00731e",
+                        "inverse-surface": "#2f3131",
+                        "on-surface": "#1a1c1c",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-container": "#eeeeee",
+                        "surface": "#f9f9f9",
+                        "tertiary-fixed-dim": "#e4beb2",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#91d78a",
+                        "on-primary-fixed": "#002203",
+                        "secondary": "#006e1c",
+                        "surface-dim": "#dadada",
+                        "on-surface-variant": "#41493e",
+                        "outline": "#717a6d",
+                        "tertiary-container": "#674b41",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#90d689",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "container-margin": "16px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "xs": "4px",
+                        "gutter": "12px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "label-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hero-overlay {
+            background: linear-gradient(180deg, rgba(0, 69, 13, 0.2) 0%, rgba(255, 255, 255, 0.95) 70%, #f9f9f9 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+<!-- Splash Screen Container -->
+<main class="relative min-h-screen flex flex-col items-center justify-between overflow-hidden">
+<!-- Background Image with detailed prompt -->
+<div class="absolute inset-0 z-0">
+<img alt="Coffee plantation view" class="w-full h-full object-cover object-center" data-alt="A lush coffee plantation nestled in high-altitude mountains, draped in a delicate morning mist and soft fog. The sunlight filters through the moisture, creating a bright, ethereal light-mode atmosphere with soft greens and earthy browns. Rows of coffee plants extend into the distance under a serene, overcast sky. The overall mood is peaceful, professional, and connected to nature, perfectly embodying an eco-friendly agricultural heritage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIA-iIqP6BkHzz5FqBP4MS1RE2K6CkHFWLfA23AyQk8a4LZaRwl6WMhnL9HXLgTlG3OhUWTxIdqQXWpVODXm7Vv35P3nic7t5QXP6eKLIuGwn02QaCTfxL-vLhFLCbWSaPtoMAcApKZEwy92Hmex3Z1SOOafqdjjPQcE7irSK1jRY53c18PDAZqI5Z-qCs0W9LhUu7l5ZRtnTQLe3Vi-nQSyW7e5zdhWzRq6me9QegWH8A6wtURmFybA-sdraKCyAuCZsmH1GLrQg"/>
+<div class="absolute inset-0 hero-overlay"></div>
+</div>
+<!-- Content Content -->
+<div class="relative z-10 w-full max-w-md mx-auto flex-1 flex flex-col items-center justify-center px-lg text-center">
+<!-- Logo Section -->
+<div class="mb-xl bg-white/80 backdrop-blur-md p-lg rounded-full shadow-lg border border-outline-variant flex flex-col items-center">
+<div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-sm shadow-md">
+<span class="material-symbols-outlined text-white text-[48px]" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<div class="flex flex-col items-center">
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">EcoRuta</h1>
+<span class="font-headline-sm text-headline-sm text-primary -mt-1 opacity-80">Cafetera</span>
+</div>
+</div>
+<!-- Brand Message -->
+<div class="space-y-sm mb-xl">
+<p class="font-label-lg text-label-lg uppercase tracking-widest text-on-surface-variant">Sistema Territorial</p>
+<p class="font-body-lg text-body-lg text-on-surface max-w-[280px] leading-relaxed">
+                    Potenciando la eficiencia en la cosecha y la gestión de fincas cafeteras.
+                </p>
+</div>
+<!-- Status Indicator -->
+<div class="mb-xl flex items-center gap-2 bg-secondary-container/50 px-md py-xs rounded-full border border-secondary/20">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-secondary-container font-bold">Conectado</span>
+</div>
+<!-- Action Buttons -->
+<div class="w-full space-y-md">
+<button class="w-full py-4 bg-primary text-on-primary rounded-xl font-headline-sm shadow-xl active:scale-95 transition-all hover:bg-primary-container">
+                    Iniciar Sesión
+                </button>
+<button class="w-full py-4 bg-white text-primary border-2 border-primary rounded-xl font-headline-sm active:scale-95 transition-all hover:bg-surface-container-low">
+                    Registrarse
+                </button>
+</div>
+</div>
+<!-- Decorative Footer Element -->
+<footer class="relative z-10 w-full p-md text-center">
+<div class="flex items-center justify-center gap-xs text-on-surface-variant/60">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span class="font-label-sm text-label-sm">Versión 2.4.0 • 2024</span>
+</div>
+<div class="h-1 w-32 bg-outline-variant mx-auto mt-md rounded-full"></div>
+</footer>
+</main>
+<!-- Contextual "Bottom Bar" for the Splash Experience (Supressed according to rules, but here is a placeholder check) -->
+<!-- The rules mandate suppression for login/splash/onboarding screens, so no BottomNavBar is rendered here -->
+</body></html>

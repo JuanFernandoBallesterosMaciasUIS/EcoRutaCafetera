@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EcoRuta - Iniciar Sesión</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#e2bdb0",
+                        "on-secondary-fixed-variant": "#005313",
+                        "background": "#f9f9f9",
+                        "secondary-fixed-dim": "#78dc77",
+                        "surface-container-high": "#e8e8e8",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f1f1f1",
+                        "surface-container-low": "#f3f3f3",
+                        "primary-fixed": "#acf4a4",
+                        "secondary-container": "#91f78e",
+                        "primary-fixed-dim": "#91d78a",
+                        "secondary-fixed": "#94f990",
+                        "on-tertiary-fixed-variant": "#5b4137",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002204",
+                        "on-primary-fixed-variant": "#0c5216",
+                        "on-background": "#1a1c1c",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#00450d",
+                        "surface-variant": "#e2e2e2",
+                        "outline-variant": "#c0c9bb",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#1b5e20",
+                        "surface-bright": "#f9f9f9",
+                        "tertiary-fixed": "#ffdbce",
+                        "surface-tint": "#2a6b2c",
+                        "tertiary": "#4d352b",
+                        "on-tertiary-fixed": "#2b160f",
+                        "on-secondary-container": "#00731e",
+                        "inverse-surface": "#2f3131",
+                        "on-surface": "#1a1c1c",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-container": "#eeeeee",
+                        "surface": "#f9f9f9",
+                        "tertiary-fixed-dim": "#e4beb2",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#91d78a",
+                        "on-primary-fixed": "#002203",
+                        "secondary": "#006e1c",
+                        "surface-dim": "#dadada",
+                        "on-surface-variant": "#41493e",
+                        "outline": "#717a6d",
+                        "tertiary-container": "#674b41",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#90d689",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "container-margin": "16px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "xs": "4px",
+                        "gutter": "12px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "label-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            background-color: #f9f9f9;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- Top AppBar (Back Action - Transactional Context) -->
+<header class="flex items-center w-full px-md h-14 bg-surface border-b border-outline-variant">
+<button class="p-2 hover:bg-surface-container-low transition-colors rounded-full text-on-surface-variant Active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+</header>
+<main class="flex-grow flex items-center justify-center p-md">
+<div class="w-full max-w-[400px] bg-surface-container-lowest rounded-xl shadow-[0_2px_12px_rgba(0,69,13,0.08)] p-xl flex flex-col items-center">
+<!-- Logo Section -->
+<div class="mb-lg flex flex-col items-center">
+<div class="w-20 h-20 bg-surface-container-low rounded-full flex items-center justify-center mb-sm shadow-inner overflow-hidden border border-outline-variant">
+<img alt="EcoRuta Logo" class="w-14 h-14 object-contain" data-alt="A professional and minimalist corporate logo for a coffee technology brand named EcoRuta. The logo features stylized coffee beans and a digital leaf motif in deep forest green. The overall aesthetic is clean, modern, and high-tech, reflecting the digital harvest concept within a bright, minimalist agricultural context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZ71ySNtz9UGgC9OQJcNt8S3CCKbXt1JzoSTO_SwhKuDEJD0Lvz5dDX4kyRx_BXb_K4OIRZdqMIhynZ8K2TlmCInwkRQTJFYENPWZEL7VKn-8Ayey6_fDlTxFDmMLqOHqgi74K-a96qwDqo4ll4PP2wRf1_TKg09HNCwgaFHKUXn8q14E0QJQekgsi5VPWnGYzvERNFeTxAfFyB00nO5w4uClowqOHyfthooB60f-RMzBNVNLLBiQYQ5CP0zvBPZgGTo_pqVySOGk"/>
+</div>
+<h1 class="font-headline-md text-headline-md text-primary font-bold">Iniciar Sesión</h1>
+</div>
+<!-- Login Form -->
+<form class="w-full space-y-lg">
+<!-- Username Field -->
+<div class="space-y-unit">
+<label class="font-label-sm text-label-sm text-on-surface-variant ml-1" for="username">Usuario o correo</label>
+<div class="relative">
+<input class="w-full h-12 px-md bg-surface-container rounded-lg border-none focus:ring-2 focus:ring-primary text-body-md placeholder:text-on-surface-variant/50 transition-all" id="username" placeholder="ejemplo@correo.com" type="text"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-unit">
+<label class="font-label-sm text-label-sm text-on-surface-variant ml-1" for="password">Contraseña</label>
+<div class="relative flex items-center">
+<input class="w-full h-12 px-md bg-surface-container rounded-lg border-none focus:ring-2 focus:ring-primary text-body-md placeholder:text-on-surface-variant/50 transition-all" id="password" placeholder="••••••••••••" type="password"/>
+<button class="absolute right-md text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Offline Checkbox -->
+<div class="flex items-center gap-sm">
+<input class="w-5 h-5 rounded border-outline text-secondary focus:ring-secondary cursor-pointer" id="offline" type="checkbox"/>
+<label class="font-body-md text-body-md text-on-surface-variant cursor-pointer select-none" for="offline">Mantener sesión offline</label>
+</div>
+<!-- Primary Action -->
+<button class="w-full h-12 bg-secondary text-on-secondary font-label-lg text-label-lg rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all" type="submit">
+                    Ingresar
+                </button>
+<!-- Forgot Password Link -->
+<div class="text-center">
+<a class="font-label-lg text-label-lg text-primary hover:underline transition-all" href="#">¿Olvidó la contraseña?</a>
+</div>
+</form>
+</div>
+</main>
+<!-- Footer Indicator (Offline Status) -->
+<footer class="p-lg flex justify-center items-center">
+<div class="flex items-center gap-sm px-lg py-sm bg-error-container text-on-error-container rounded-full shadow-sm border border-error/10">
+<span class="material-symbols-outlined text-[18px]" data-icon="cloud_off" style="font-variation-settings: 'FILL' 1;">cloud_off</span>
+<span class="font-label-sm text-label-sm font-semibold">Sin internet - Modo offline disponible</span>
+</div>
+</footer>
+</body></html>

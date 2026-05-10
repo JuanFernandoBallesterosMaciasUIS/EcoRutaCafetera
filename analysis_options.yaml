@@ -1,0 +1,26 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Code style
+    prefer_single_quotes: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    
+    # Dart best practices
+    avoid_print: true
+    avoid_unnecessary_containers: true
+    use_super_parameters: true
+    use_build_context_synchronously: true
+    
+    # Flutter specific
+    sized_box_for_whitespace: true
+    use_key_in_widget_constructors: true
+    prefer_const_constructors_in_immutables: true
+
+analyzer:
+  errors:
+    missing_required_param: error
+    missing_return: error
