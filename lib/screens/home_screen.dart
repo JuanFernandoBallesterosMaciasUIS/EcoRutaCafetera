@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/providers.dart';
 import '../widgets/widgets.dart';
+import 'gps_route_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -642,16 +643,7 @@ class _MapTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _EmptyState(
-      icon: Icons.map_outlined,
-      title: 'Mapa Territorial',
-      subtitle: 'Módulo GPS y cartografía en desarrollo (Sprint 4)',
-      action: ElevatedButton.icon(
-        onPressed: null,
-        icon: const Icon(Icons.construction_rounded),
-        label: const Text('En desarrollo'),
-      ),
-    );
+    return const GpsRouteTab();
   }
 }
 
