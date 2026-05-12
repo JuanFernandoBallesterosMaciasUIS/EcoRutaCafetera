@@ -4,7 +4,10 @@
       "PowerShell(cd \"c:\\\\Users\\\\jball\\\\OneDrive\\\\Documentos\\\\UIS\\\\octavo semestre\\\\software 2\\\\taller corte 3\\\\ecoruta_cafetera\"; Get-ChildItem -Recurse -Path .\\\\lib -File | ForEach-Object { $_.FullName.Replace\\(\\(Get-Location\\).Path + '\\\\', ''\\) } | Sort-Object)",
       "Bash(flutter analyze *)",
       "Bash(flutter doctor *)",
-      "Bash(flutter run *)"
+      "Bash(flutter run *)",
+      "Bash(python -c \"from PIL import Image; print\\('PIL ok'\\)\")",
+      "Bash(python3)",
+      "Bash(flutter pub *)"
     ]
   }
 }
