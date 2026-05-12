@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
+import '../services/location_service.dart';
 import '../services/providers.dart';
 import '../widgets/widgets.dart';
 
@@ -22,6 +23,8 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
   final _mapController = MapController();
   int? _selectedMunicipio;
   Finca? _selectedFinca;
+  LatLng? _myLocation;
+  bool _loadingLocation = false;
 
   // Centro del cordón cafetero de Santander (Barbosa / Vélez)
   static const _center = LatLng(6.1900, -73.6100);
@@ -30,6 +33,26 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
   void dispose() {
     _mapController.dispose();
     super.dispose();
+  }
+
+  Future<void> _goToMyLocation() async {
+    setState(() => _loadingLocation = true);
+    final loc = await LocationService.getCurrentLocation();
+    if (!mounted) return;
+    setState(() {
+      _loadingLocation = false;
+      _myLocation = loc;
+    });
+    if (loc != null) {
+      _mapController.move(loc, 15);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo obtener la ubicación. Verifica los permisos.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -52,8 +75,23 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
         title: const Text('Mapa territorial de fincas'),
         actions: [
           IconButton(
+            icon: _loadingLocation
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    _myLocation != null
+                        ? Icons.my_location_rounded
+                        : Icons.location_searching_rounded,
+                  ),
+            tooltip: 'Mi ubicación',
+            onPressed: _loadingLocation ? null : _goToMyLocation,
+          ),
+          IconButton(
             icon: const Icon(Icons.center_focus_strong_rounded),
-            tooltip: 'Centrar',
+            tooltip: 'Centrar región',
             onPressed: () {
               _mapController.move(_center, 13);
               setState(() => _selectedFinca = null);
@@ -114,6 +152,19 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
                       userAgentPackageName: 'com.ecoruta.cafetera',
                       maxZoom: 19,
                     ),
+
+                    // User location marker
+                    if (_myLocation != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _myLocation!,
+                            width: 48,
+                            height: 48,
+                            child: _MyLocationMarker(),
+                          ),
+                        ],
+                      ),
 
                     // Farm markers
                     MarkerLayer(
@@ -212,6 +263,43 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
   }
 }
 
+// ─── My Location Marker ───────────────────────────────────────────────────────
+
+class _MyLocationMarker extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+        ),
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: Colors.blue,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withValues(alpha: 0.4),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ─── Farm Marker Widget ───────────────────────────────────────────────────────
 
 class _FarmMarkerWidget extends StatelessWidget {
@@ -293,11 +381,11 @@ class _MapLegend extends StatelessWidget {
                   .labelSmall
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
-          _LegendItem(
+          const _LegendItem(
               color: EcoRutaColors.secondary, label: 'Sincronizado'),
-          _LegendItem(
+          const _LegendItem(
               color: EcoRutaColors.tertiary, label: 'Pendiente'),
-          _LegendItem(color: EcoRutaColors.error, label: 'Error'),
+          const _LegendItem(color: EcoRutaColors.error, label: 'Error'),
         ],
       ),
     ).animate().fadeIn(delay: 500.ms);
