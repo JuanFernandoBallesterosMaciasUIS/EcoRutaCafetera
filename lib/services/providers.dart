@@ -23,16 +23,28 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   Future<bool> login(String username, String password) async {
     await Future.delayed(const Duration(milliseconds: 800));
     if (username.isEmpty || password.length < 4) return false;
-    // Role-based demo login
+    
     final u = username.toLowerCase().trim();
-    if (u == 'admin' || u == 'laura') {
-      state = demoAdmin;
-    } else if (u == 'consultor' || u == 'jorge') {
-      state = demoConsultor;
-    } else {
-      state = demoUser;
+    
+    // Buscar el usuario en la lista de usuarios del sistema
+    try {
+      final usuario = demoUsuarios.firstWhere(
+        (user) => user.nombre.toLowerCase() == u || user.email.toLowerCase() == u,
+      );
+      
+      // Convertir UsuarioSistema a AppUser
+      state = AppUser(
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        municipioAsignado: usuario.municipioAsignado,
+      );
+      return true;
+    } catch (e) {
+      // Usuario no encontrado, retorna false
+      return false;
     }
-    return true;
   }
 
   void logout() => state = null;
