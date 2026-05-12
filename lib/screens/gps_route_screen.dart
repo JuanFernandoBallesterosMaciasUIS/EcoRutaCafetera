@@ -3,8 +3,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../theme/app_theme.dart';
 
@@ -17,7 +19,7 @@ class GpsRouteData {
   final int elapsedSeconds;
   final int gpsPoints;
   final double distanceMeters;
-  final List<Offset> routePoints;
+  final List<LatLng> routePoints;
 
   const GpsRouteData({
     this.status = GpsTrackingStatus.idle,
@@ -32,7 +34,7 @@ class GpsRouteData {
     int? elapsedSeconds,
     int? gpsPoints,
     double? distanceMeters,
-    List<Offset>? routePoints,
+    List<LatLng>? routePoints,
   }) =>
       GpsRouteData(
         status: status ?? this.status,
@@ -69,16 +71,16 @@ class GpsRouteNotifier extends StateNotifier<GpsRouteData> {
   Timer? _timer;
   final _rng = math.Random(42);
 
-  // Ruta de demostración que replica el diseño Figma
-  static const _demoRoute = <Offset>[
-    Offset(0.18, 0.82),
-    Offset(0.28, 0.74),
-    Offset(0.38, 0.63),
-    Offset(0.46, 0.52),
-    Offset(0.52, 0.42),
-    Offset(0.61, 0.32),
-    Offset(0.72, 0.22),
-    Offset(0.81, 0.14),
+  // Ruta demo — coordenadas reales zona cafetera Barbosa/Vélez, Santander
+  static const _demoRoute = <LatLng>[
+    LatLng(6.1780, -73.6200),
+    LatLng(6.1820, -73.6160),
+    LatLng(6.1860, -73.6120),
+    LatLng(6.1900, -73.6090),
+    LatLng(6.1940, -73.6050),
+    LatLng(6.1970, -73.6010),
+    LatLng(6.2010, -73.5970),
+    LatLng(6.2050, -73.5940),
   ];
 
   void _initDemoRoute() {
@@ -111,14 +113,12 @@ class GpsRouteNotifier extends StateNotifier<GpsRouteData> {
     final distance = state.distanceMeters + 0.55 + _rng.nextDouble() * 0.5;
     final points = elapsed % 3 == 0 ? state.gpsPoints + 1 : state.gpsPoints;
 
-    List<Offset> route = state.routePoints;
+    List<LatLng> route = state.routePoints;
     if (elapsed % 5 == 0 && route.isNotEmpty) {
       final last = route.last;
-      final nx =
-          (last.dx + (_rng.nextDouble() - 0.45) * 0.04).clamp(0.05, 0.93);
-      final ny =
-          (last.dy + (_rng.nextDouble() - 0.65) * 0.04).clamp(0.05, 0.93);
-      route = [...route, Offset(nx, ny)];
+      final dlat = (_rng.nextDouble() - 0.3) * 0.0005;
+      final dlng = (_rng.nextDouble() - 0.3) * 0.0005;
+      route = [...route, LatLng(last.latitude + dlat, last.longitude + dlng)];
     }
 
     state = state.copyWith(
@@ -143,34 +143,118 @@ final gpsRouteProvider =
 
 // ─── Tab principal (embebible en HomeScreen) ──────────────────────────────────
 
-class GpsRouteTab extends ConsumerWidget {
+class GpsRouteTab extends ConsumerStatefulWidget {
   const GpsRouteTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GpsRouteTab> createState() => _GpsRouteTabState();
+}
+
+class _GpsRouteTabState extends ConsumerState<GpsRouteTab> {
+  final _mapController = MapController();
+
+  static const _defaultCenter = LatLng(6.1900, -73.6050);
+  static const _defaultZoom = 14.0;
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _centerOnRoute(List<LatLng> points) {
+    if (points.isEmpty) return;
+    _mapController.move(points.last, _defaultZoom);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(gpsRouteProvider);
     final notifier = ref.read(gpsRouteProvider.notifier);
 
     return Stack(
       children: [
-        // Fondo de mapa simulado
-        const _MapBackground(),
-
-        // Overlay radial (efecto profesional)
-        _RadialOverlay(),
-
-        // Traza de la ruta
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _RoutePainter(
-              points: data.routePoints,
-              isRecording: data.status == GpsTrackingStatus.recording,
-            ),
+        // Mapa real OpenStreetMap
+        FlutterMap(
+          mapController: _mapController,
+          options: const MapOptions(
+            initialCenter: _defaultCenter,
+            initialZoom: _defaultZoom,
           ),
+          children: [
+            TileLayer(
+              urlTemplate:
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.ecoruta.cafetera',
+              maxZoom: 19,
+            ),
+
+            // Traza de la ruta
+            if (data.routePoints.length >= 2)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: data.routePoints,
+                    strokeWidth: 5,
+                    color: const Color(0xFF4CAF73),
+                    borderStrokeWidth: 2,
+                    borderColor: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ],
+              ),
+
+            // Marcadores inicio y posicion actual
+            if (data.routePoints.isNotEmpty)
+              MarkerLayer(
+                markers: [
+                  // Inicio
+                  Marker(
+                    point: data.routePoints.first,
+                    width: 28,
+                    height: 28,
+                    child: const _RouteMarker(
+                      color: EcoRutaColors.primary,
+                      icon: Icons.play_arrow_rounded,
+                    ),
+                  ),
+                  // Posicion actual / fin
+                  if (data.routePoints.length > 1)
+                    Marker(
+                      point: data.routePoints.last,
+                      width: 32,
+                      height: 32,
+                      child: _RouteMarker(
+                        color: data.status == GpsTrackingStatus.recording
+                            ? const Color(0xFF4CAF73)
+                            : data.status == GpsTrackingStatus.paused
+                                ? const Color(0xFFF57C00)
+                                : EcoRutaColors.onSurfaceVariant,
+                        icon: Icons.my_location_rounded,
+                        pulsing:
+                            data.status == GpsTrackingStatus.recording,
+                      ),
+                    ),
+                ],
+              ),
+
+            // Atribucion OSM
+            const SimpleAttributionWidget(
+              source: Text('© OpenStreetMap',
+                  style: TextStyle(fontSize: 10, color: Colors.black54)),
+            ),
+          ],
         ),
 
         // Controles flotantes derecha
-        const _MapControlsColumn(),
+        _MapControlsColumn(
+          onZoomIn: () => _mapController.move(
+              _mapController.camera.center,
+              _mapController.camera.zoom + 1),
+          onZoomOut: () => _mapController.move(
+              _mapController.camera.center,
+              _mapController.camera.zoom - 1),
+          onCenter: () => _centerOnRoute(data.routePoints),
+        ),
 
         // Tarjeta de estadísticas + acciones (bottom)
         Positioned(
@@ -187,185 +271,60 @@ class GpsRouteTab extends ConsumerWidget {
   }
 }
 
-// ─── Fondo del mapa ───────────────────────────────────────────────────────────
+// ─── Marcador de ruta ─────────────────────────────────────────────────────────
 
-class _MapBackground extends StatelessWidget {
-  const _MapBackground();
+class _RouteMarker extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final bool pulsing;
+
+  const _RouteMarker({
+    required this.color,
+    required this.icon,
+    this.pulsing = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF142E17),
-              Color(0xFF1F4A22),
-              Color(0xFF2D6130),
-              Color(0xFF3A7A3D),
-              Color(0xFF2D6130),
-              Color(0xFF1F4A22),
-            ],
-            stops: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+    final Widget marker = Container(
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 8,
+            spreadRadius: pulsing ? 3 : 0,
           ),
-        ),
-        child: CustomPaint(
-          painter: _TerrainPainter(),
-        ),
+        ],
       ),
+      child: Icon(icon, color: Colors.white, size: 14),
     );
-  }
-}
 
-class _TerrainPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final contourPaint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
-      ..strokeWidth = 0.8
-      ..style = PaintingStyle.stroke;
-
-    final roadPaint = Paint()
-      ..color = Colors.white.withOpacity(0.10)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    // Lineas de contorno topograficas
-    for (var i = 0; i < 18; i++) {
-      final y = i * size.height / 17;
-      final path = Path();
-      path.moveTo(0, y);
-      for (var x = 0.0; x <= size.width; x += 50) {
-        final wave = math.sin(x / size.width * math.pi * 4 + i * 0.7) * 14;
-        path.quadraticBezierTo(
-          x + 25,
-          y + wave,
-          x + 50,
-          y + math.sin((x + 50) / size.width * math.pi * 4 + i * 0.7) * 14,
-        );
-      }
-      canvas.drawPath(path, contourPaint);
+    if (pulsing) {
+      return marker
+          .animate(onPlay: (c) => c.repeat())
+          .scaleXY(begin: 1.0, end: 1.2, duration: 700.ms)
+          .then()
+          .scaleXY(begin: 1.2, end: 1.0, duration: 700.ms);
     }
-
-    // Simulacion de caminos
-    canvas.drawLine(
-      Offset(0, size.height * 0.38),
-      Offset(size.width, size.height * 0.46),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.42, 0),
-      Offset(size.width * 0.55, size.height),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.70),
-      Offset(size.width * 0.60, size.height * 0.55),
-      roadPaint,
-    );
+    return marker;
   }
-
-  @override
-  bool shouldRepaint(_TerrainPainter _) => false;
-}
-
-// ─── Overlay radial ───────────────────────────────────────────────────────────
-
-class _RadialOverlay extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.center,
-            radius: 1.2,
-            colors: [
-              Colors.transparent,
-              Colors.black.withOpacity(0.35),
-            ],
-            stops: const [0.55, 1.0],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Painter de la ruta ───────────────────────────────────────────────────────
-
-class _RoutePainter extends CustomPainter {
-  final List<Offset> points;
-  final bool isRecording;
-
-  const _RoutePainter({required this.points, required this.isRecording});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.length < 2) return;
-
-    final scaled = points
-        .map((p) => Offset(p.dx * size.width, p.dy * size.height))
-        .toList();
-
-    // Sombra de la ruta
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.35)
-      ..strokeWidth = 9
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    // Linea de la ruta
-    final routePaint = Paint()
-      ..color = const Color(0xFF4CAF73)
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()..moveTo(scaled[0].dx, scaled[0].dy);
-    for (var i = 1; i < scaled.length; i++) {
-      path.lineTo(scaled[i].dx, scaled[i].dy);
-    }
-
-    canvas.drawPath(path, shadowPaint);
-    canvas.drawPath(path, routePaint);
-
-    // Marcador de inicio (circulo verde)
-    _drawMarker(canvas, scaled.first, EcoRutaColors.primary);
-
-    // Marcador de posicion actual / fin
-    final endColor =
-        isRecording ? const Color(0xFF4CAF73) : EcoRutaColors.error;
-    _drawMarker(canvas, scaled.last, endColor);
-
-    // Anillo pulsante si esta grabando
-    if (isRecording) {
-      final pulsePaint = Paint()
-        ..color = const Color(0xFF4CAF73).withOpacity(0.28)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3;
-      canvas.drawCircle(scaled.last, 18, pulsePaint);
-    }
-  }
-
-  void _drawMarker(Canvas canvas, Offset center, Color color) {
-    canvas.drawCircle(center, 11, Paint()..color = Colors.white);
-    canvas.drawCircle(center, 8, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_RoutePainter old) =>
-      old.points != points || old.isRecording != isRecording;
 }
 
 // ─── Controles flotantes del mapa ─────────────────────────────────────────────
 
 class _MapControlsColumn extends StatelessWidget {
-  const _MapControlsColumn();
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onCenter;
+
+  const _MapControlsColumn({
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onCenter,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -377,11 +336,11 @@ class _MapControlsColumn extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _MapBtn(icon: Icons.add_rounded),
+            _MapBtn(icon: Icons.add_rounded, onTap: onZoomIn),
             const SizedBox(height: 8),
-            _MapBtn(icon: Icons.remove_rounded),
+            _MapBtn(icon: Icons.remove_rounded, onTap: onZoomOut),
             const SizedBox(height: 8),
-            _MapBtn(icon: Icons.my_location_rounded),
+            _MapBtn(icon: Icons.my_location_rounded, onTap: onCenter),
           ],
         ),
       ),
@@ -391,7 +350,9 @@ class _MapControlsColumn extends StatelessWidget {
 
 class _MapBtn extends StatelessWidget {
   final IconData icon;
-  const _MapBtn({required this.icon});
+  final VoidCallback onTap;
+
+  const _MapBtn({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +363,7 @@ class _MapBtn extends StatelessWidget {
       shadowColor: Colors.black38,
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: () {},
+        onTap: onTap,
         child: SizedBox(
           width: 48,
           height: 48,
@@ -430,14 +391,14 @@ class _StatsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
-        color: EcoRutaColors.surface.withOpacity(0.96),
+        color: EcoRutaColors.surface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: EcoRutaColors.outlineVariant.withOpacity(0.4),
+          color: EcoRutaColors.outlineVariant.withValues(alpha: 0.4),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -497,7 +458,7 @@ class _StatsCard extends StatelessWidget {
                 ),
                 VerticalDivider(
                   width: 1,
-                  color: EcoRutaColors.outlineVariant.withOpacity(0.5),
+                  color: EcoRutaColors.outlineVariant.withValues(alpha: 0.5),
                 ),
                 Expanded(
                   child: _StatCell(
@@ -508,7 +469,7 @@ class _StatsCard extends StatelessWidget {
                 ),
                 VerticalDivider(
                   width: 1,
-                  color: EcoRutaColors.outlineVariant.withOpacity(0.5),
+                  color: EcoRutaColors.outlineVariant.withValues(alpha: 0.5),
                 ),
                 Expanded(
                   child: _StatCell(
