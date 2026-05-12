@@ -6,10 +6,14 @@ import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/nueva_finca_screen.dart';
+import '../screens/finca_detail_screen.dart';
+import '../screens/visita_form_screen.dart';
+import '../screens/pendientes_screen.dart';
+import '../screens/mapa_fincas_screen.dart';
+import '../screens/usuarios_screen.dart';
+import '../screens/reportes_screen.dart';
 import '../services/providers.dart';
-import '../models/models.dart';
 
-/// App router configuration using go_router with role-based guards
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
@@ -21,16 +25,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/';
 
-      // If not authenticated and trying to access protected routes
-      if (!isAuth && !isOnAuthPage) {
-        return '/';
-      }
-
-      // If authenticated and on splash/auth pages, go to home
-      if (isAuth && isOnAuthPage) {
-        return '/home';
-      }
-
+      if (!isAuth && !isOnAuthPage) return '/';
+      if (isAuth && isOnAuthPage) return '/home';
       return null;
     },
     routes: [
@@ -64,8 +60,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'detalle-finca',
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
-          return _FincaDetailPlaceholder(id: id);
+          return FincaDetailScreen(fincaId: id);
         },
+      ),
+      GoRoute(
+        path: '/visita/nueva/:fincaId',
+        name: 'nueva-visita',
+        builder: (context, state) {
+          final fincaId = state.pathParameters['fincaId'] ?? '';
+          return VisitaFormScreen(fincaId: fincaId);
+        },
+      ),
+      GoRoute(
+        path: '/pendientes',
+        name: 'pendientes',
+        builder: (_, __) => const PendientesScreen(),
+      ),
+      GoRoute(
+        path: '/mapa-fincas',
+        name: 'mapa-fincas',
+        builder: (_, __) => const MapaFincasScreen(),
+      ),
+      GoRoute(
+        path: '/usuarios',
+        name: 'usuarios',
+        builder: (_, __) => const UsuariosScreen(),
+      ),
+      GoRoute(
+        path: '/reportes',
+        name: 'reportes',
+        builder: (_, __) => const ReportesScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -79,7 +103,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             Text('Página no encontrada: ${state.uri}'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.go('/home'),
               child: const Text('Inicio'),
             ),
           ],
@@ -88,126 +112,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
-
-/// Placeholder for finca detail screen
-class _FincaDetailPlaceholder extends ConsumerWidget {
-  final String id;
-  const _FincaDetailPlaceholder({required this.id});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final fincas = ref.read(fincasProvider);
-    final finca = fincas.firstWhere(
-      (f) => f.id.toString() == id,
-      orElse: () => const Finca(
-        nombre: 'No encontrada',
-        propietario: '',
-        vereda: '',
-        hectareas: 0,
-        variedadCafe: '',
-        municipioId: 1,
-      ),
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/home'),
-        ),
-        title: Text(finca.nombre),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _DetailRow('Propietario', finca.propietario),
-                    _DetailRow('Vereda', finca.vereda),
-                    _DetailRow('Municipio', finca.municipioNombre),
-                    _DetailRow('Hectáreas', '${finca.hectareas} ha'),
-                    _DetailRow('Variedad', finca.variedadCafe),
-                    _DetailRow(
-                      'Coordenadas',
-                      finca.latitud != null
-                          ? '${finca.latitud!.toStringAsFixed(4)}°N, ${finca.longitud!.toStringAsFixed(4)}°O'
-                          : 'Sin capturar',
-                    ),
-                    _DetailRow('Estado sync', finca.syncStatus.displayName),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Historial de visitas',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: const Color(0xFF00450D),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(
-                  child: Text(
-                    'Sin visitas registradas',
-                    style: TextStyle(color: Color(0xFF41493E)),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        backgroundColor: const Color(0xFF006E1C),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_chart_rounded),
-        label: const Text('Capturar indicadores'),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _DetailRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: const Color(0xFF41493E),
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../services/providers.dart';
 import '../widgets/widgets.dart';
 import 'gps_route_screen.dart';
+import 'mapa_fincas_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -92,11 +93,14 @@ class _MobileHomeLayoutState extends ConsumerState<_MobileHomeLayout> {
         index: _navIndex,
         children: [
           _HomeTab(
-              user: widget.user,
-              isOnline: widget.isOnline,
-              pendingCount: widget.pendingCount),
-          _FincasTab(fincas: widget.fincas),
-          const _MapTab(),
+            user: widget.user,
+            isOnline: widget.isOnline,
+            pendingCount: widget.pendingCount,
+            onSwitchToFincas: () => setState(() => _navIndex = 1),
+            onSwitchToMap: () => setState(() => _navIndex = 2),
+          ),
+          const _FincasTab(),
+          _MapTab(user: widget.user),
           _MoreTab(user: widget.user),
         ],
       ),
@@ -122,73 +126,60 @@ class _MobileHomeLayoutState extends ConsumerState<_MobileHomeLayout> {
             child: const Icon(Icons.eco_rounded, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 10),
-          Text(
-            'EcoRuta',
-            style: Theme.of(context).appBarTheme.titleTextStyle,
-          ),
+          Text('EcoRuta',
+              style: Theme.of(context).appBarTheme.titleTextStyle),
         ],
       ),
       actions: [
-        // Connectivity toggle (for demo)
         Consumer(
           builder: (context, ref, _) {
             final isOnline = ref.watch(connectivityProvider);
             return IconButton(
-              onPressed: () => ref.read(connectivityProvider.notifier).toggle(),
+              onPressed: () =>
+                  ref.read(connectivityProvider.notifier).toggle(),
               icon: Icon(
                 isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                color: isOnline ? EcoRutaColors.secondary : EcoRutaColors.error,
+                color: isOnline
+                    ? EcoRutaColors.secondary
+                    : EcoRutaColors.error,
               ),
               tooltip: isOnline ? 'Conectado' : 'Sin conexión',
             );
           },
         ),
         IconButton(
-          onPressed: () {
-            _showSyncDialog(context);
-          },
-          icon: const Icon(Icons.sync_rounded),
-          style: IconButton.styleFrom(
-            foregroundColor: EcoRutaColors.primary,
+          onPressed: () => context.go('/pendientes'),
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.sync_rounded),
+              if (widget.pendingCount > 0)
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: const BoxDecoration(
+                      color: EcoRutaColors.tertiary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${widget.pendingCount > 9 ? '9+' : widget.pendingCount}',
+                        style: const TextStyle(
+                            fontSize: 8,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
+          style: IconButton.styleFrom(foregroundColor: EcoRutaColors.primary),
         ),
       ],
-    );
-  }
-
-  void _showSyncDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sincronizar datos'),
-        content: Text(
-          widget.isOnline
-              ? 'Se sincronizarán ${widget.pendingCount} registros pendientes.'
-              : 'No hay conexión disponible. Los datos se sincronizarán automáticamente cuando haya internet.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          if (widget.isOnline)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Sincronización iniciada...'),
-                    backgroundColor: EcoRutaColors.secondary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                );
-              },
-              child: const Text('Sincronizar'),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -220,7 +211,6 @@ class _WideHomeLayoutState extends ConsumerState<_WideHomeLayout> {
     return Scaffold(
       body: Row(
         children: [
-          // Navigation Rail
           NavigationRail(
             selectedIndex: _navIndex,
             onDestinationSelected: (i) => setState(() => _navIndex = i),
@@ -245,11 +235,13 @@ class _WideHomeLayoutState extends ConsumerState<_WideHomeLayout> {
                     const SizedBox(width: 10),
                     Text(
                       'EcoRuta',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: EcoRutaColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(
+                            color: EcoRutaColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ],
                 ),
@@ -267,14 +259,15 @@ class _WideHomeLayoutState extends ConsumerState<_WideHomeLayout> {
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
                 children: [
-                  // Sync button
                   Consumer(builder: (context, ref, _) {
                     final isOnline = ref.watch(connectivityProvider);
                     return TextButton.icon(
                       onPressed: () =>
                           ref.read(connectivityProvider.notifier).toggle(),
                       icon: Icon(
-                        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                        isOnline
+                            ? Icons.wifi_rounded
+                            : Icons.wifi_off_rounded,
                         color: isOnline
                             ? EcoRutaColors.secondary
                             : EcoRutaColors.error,
@@ -326,18 +319,19 @@ class _WideHomeLayoutState extends ConsumerState<_WideHomeLayout> {
             ],
           ),
           const VerticalDivider(width: 1),
-
-          // Main content
           Expanded(
             child: IndexedStack(
               index: _navIndex,
               children: [
                 _HomeTab(
-                    user: widget.user,
-                    isOnline: widget.isOnline,
-                    pendingCount: widget.pendingCount),
-                _FincasTab(fincas: widget.fincas),
-                const _MapTab(),
+                  user: widget.user,
+                  isOnline: widget.isOnline,
+                  pendingCount: widget.pendingCount,
+                  onSwitchToFincas: () => setState(() => _navIndex = 1),
+                  onSwitchToMap: () => setState(() => _navIndex = 2),
+                ),
+                const _FincasTab(),
+                _MapTab(user: widget.user),
                 _MoreTab(user: widget.user),
               ],
             ),
@@ -354,22 +348,31 @@ class _HomeTab extends ConsumerWidget {
   final AppUser user;
   final bool isOnline;
   final int pendingCount;
+  final VoidCallback onSwitchToFincas;
+  final VoidCallback onSwitchToMap;
 
   const _HomeTab({
     required this.user,
     required this.isOnline,
     required this.pendingCount,
+    required this.onSwitchToFincas,
+    required this.onSwitchToMap,
   });
 
   String get _municipioNombre => Municipio.municipiosPiloto
       .firstWhere((m) => m.id == (user.municipioAsignado ?? 0),
           orElse: () => const Municipio(
-              id: 0, nombre: 'Sin asignar', departamento: '', codigoDane: ''))
+              id: 0,
+              nombre: 'Sin asignar',
+              departamento: '',
+              codigoDane: ''))
       .nombre;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fincas = ref.watch(fincasProvider);
+    final isAdmin = user.rol == UserRole.administrador;
+    final isTecnico = user.rol == UserRole.tecnicoCampo;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -378,7 +381,6 @@ class _HomeTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile section
             _ProfileCard(user: user, municipio: _municipioNombre)
                 .animate()
                 .fadeIn(duration: 400.ms)
@@ -427,61 +429,90 @@ class _HomeTab extends ConsumerWidget {
 
             // Pending sync card
             if (pendingCount > 0)
-              _PendingSyncCard(count: pendingCount, isOnline: isOnline)
-                  .animate()
-                  .fadeIn(delay: 250.ms),
+              _PendingSyncCard(
+                count: pendingCount,
+                isOnline: isOnline,
+                onTap: () => context.go('/pendientes'),
+              ).animate().fadeIn(delay: 250.ms),
 
             if (pendingCount > 0) const SizedBox(height: 24),
 
-            // Quick actions
+            // Quick actions — role-aware
             const SectionHeader(title: 'Acciones rápidas'),
             const SizedBox(height: 16),
 
-            QuickActionButton(
-              icon: Icons.add_home_rounded,
-              title: 'Registrar Finca',
-              subtitle: 'Dar de alta un nuevo predio',
-              onTap: () => context.go('/finca/nueva'),
-            ).animate().fadeIn(delay: 300.ms),
+            if (isTecnico || user.rol == UserRole.consultor) ...[
+              QuickActionButton(
+                icon: Icons.add_home_rounded,
+                title: 'Registrar Finca',
+                subtitle: 'Dar de alta un nuevo predio',
+                onTap: user.rol == UserRole.consultor
+                    ? null
+                    : () => context.go('/finca/nueva'),
+              ).animate().fadeIn(delay: 300.ms),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            QuickActionButton(
-              isPrimary: true,
-              icon: Icons.route_rounded,
-              title: 'Iniciar Ruta GPS',
-              subtitle: 'Trazar recorrido de campo',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Módulo GPS en desarrollo (Sprint 4)'),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                );
-              },
-            ).animate().fadeIn(delay: 350.ms),
+              QuickActionButton(
+                isPrimary: true,
+                icon: Icons.route_rounded,
+                title: 'Iniciar Ruta GPS',
+                subtitle: 'Trazar recorrido de campo',
+                onTap: onSwitchToMap,
+              ).animate().fadeIn(delay: 350.ms),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            QuickActionButton(
-              icon: Icons.analytics_rounded,
-              title: 'Capturar Indicadores',
-              subtitle: 'Formularios de sostenibilidad',
-              iconBgColor: EcoRutaColors.tertiaryContainer,
-              iconColor: EcoRutaColors.onTertiaryContainer,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Selecciona primero una finca'),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                );
-              },
-            ).animate().fadeIn(delay: 400.ms),
+              QuickActionButton(
+                icon: Icons.analytics_rounded,
+                title: 'Capturar Indicadores',
+                subtitle: 'Selecciona una finca para registrar visita',
+                iconBgColor: EcoRutaColors.tertiaryContainer,
+                iconColor: EcoRutaColors.onTertiaryContainer,
+                onTap: onSwitchToFincas,
+              ).animate().fadeIn(delay: 400.ms),
+            ],
+
+            if (isAdmin) ...[
+              QuickActionButton(
+                isPrimary: true,
+                icon: Icons.map_rounded,
+                title: 'Mapa territorial',
+                subtitle: 'Ver todas las fincas geolocalizadas',
+                onTap: onSwitchToMap,
+              ).animate().fadeIn(delay: 300.ms),
+
+              const SizedBox(height: 12),
+
+              QuickActionButton(
+                icon: Icons.add_home_rounded,
+                title: 'Registrar Finca',
+                subtitle: 'Dar de alta un nuevo predio',
+                onTap: () => context.go('/finca/nueva'),
+              ).animate().fadeIn(delay: 350.ms),
+
+              const SizedBox(height: 12),
+
+              QuickActionButton(
+                icon: Icons.assessment_rounded,
+                title: 'Generar Reporte',
+                subtitle: 'PDF / Excel por municipio',
+                iconBgColor: EcoRutaColors.tertiaryContainer,
+                iconColor: EcoRutaColors.onTertiaryContainer,
+                onTap: () => context.go('/reportes'),
+              ).animate().fadeIn(delay: 400.ms),
+
+              const SizedBox(height: 12),
+
+              QuickActionButton(
+                icon: Icons.manage_accounts_rounded,
+                title: 'Gestión de usuarios',
+                subtitle: 'Crear, activar y desactivar cuentas',
+                iconBgColor: EcoRutaColors.secondaryContainer,
+                iconColor: EcoRutaColors.onSecondaryContainer,
+                onTap: () => context.go('/usuarios'),
+              ).animate().fadeIn(delay: 450.ms),
+            ],
 
             const SizedBox(height: 32),
 
@@ -489,7 +520,7 @@ class _HomeTab extends ConsumerWidget {
             SectionHeader(
               title: 'Fincas recientes',
               actionLabel: 'Ver todas',
-              onAction: () {},
+              onAction: onSwitchToFincas,
             ),
             const SizedBox(height: 16),
 
@@ -510,9 +541,7 @@ class _HomeTab extends ConsumerWidget {
 // ─── Fincas Tab ─────────────────────────────────────────────────────────────
 
 class _FincasTab extends ConsumerStatefulWidget {
-  final List<Finca> fincas;
-
-  const _FincasTab({required this.fincas});
+  const _FincasTab();
 
   @override
   ConsumerState<_FincasTab> createState() => _FincasTabState();
@@ -528,7 +557,9 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
     final filtered = fincas.where((f) {
       final matchesSearch =
           f.nombre.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              f.propietario.toLowerCase().contains(_searchQuery.toLowerCase());
+              f.propietario
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase());
       final matchesMunicipio =
           _selectedMunicipio == null || f.municipioId == _selectedMunicipio;
       return matchesSearch && matchesMunicipio;
@@ -536,7 +567,6 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
 
     return Column(
       children: [
-        // Search & filter bar
         Container(
           color: EcoRutaColors.surface,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -575,14 +605,17 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
             ],
           ),
         ),
-
-        // Fincas list
         Expanded(
           child: filtered.isEmpty
               ? _EmptyState(
                   icon: Icons.agriculture_outlined,
                   title: 'Sin resultados',
                   subtitle: 'No se encontraron fincas con ese criterio',
+                  action: ElevatedButton.icon(
+                    onPressed: () => context.go('/finca/nueva'),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Registrar finca'),
+                  ),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
@@ -590,7 +623,8 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, i) => FincaCard(
                     finca: filtered[i],
-                    onTap: () => context.go('/finca/${filtered[i].id}'),
+                    onTap: () =>
+                        context.go('/finca/${filtered[i].id}'),
                   ),
                 ),
         ),
@@ -626,9 +660,11 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color:
-                    isSelected ? Colors.white : EcoRutaColors.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? Colors.white
+                    : EcoRutaColors.onSurfaceVariant,
+                fontWeight:
+                    isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
         ),
       ),
@@ -636,13 +672,18 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ─── Map Tab ─────────────────────────────────────────────────────────────────
+// ─── Map Tab (role-aware) ─────────────────────────────────────────────────────
 
-class _MapTab extends StatelessWidget {
-  const _MapTab();
+class _MapTab extends ConsumerWidget {
+  final AppUser user;
+
+  const _MapTab({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (user.rol == UserRole.administrador) {
+      return const MapaFincasScreen(embedded: true);
+    }
     return const GpsRouteTab();
   }
 }
@@ -656,6 +697,8 @@ class _MoreTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAdmin = user.rol == UserRole.administrador;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -668,16 +711,93 @@ class _MoreTab extends ConsumerWidget {
                   fontWeight: FontWeight.w700,
                 ),
           ),
+          const SizedBox(height: 8),
+
+          // User role badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _roleColor(user.rol).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                  color: _roleColor(user.rol).withOpacity(0.4)),
+            ),
+            child: Text(
+              user.rol.displayName,
+              style: TextStyle(
+                color: _roleColor(user.rol),
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+
           const SizedBox(height: 20),
+
+          // Admin-only section
+          if (isAdmin) ...[
+            Text(
+              'Administración',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: EcoRutaColors.primary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.manage_accounts_rounded,
+              title: 'Gestión de usuarios',
+              subtitle: 'Crear, editar y desactivar cuentas',
+              onTap: () => context.go('/usuarios'),
+            ),
+            _SettingsTile(
+              icon: Icons.assessment_rounded,
+              title: 'Reportes',
+              subtitle: 'Generar PDF / Excel por municipio',
+              onTap: () => context.go('/reportes'),
+            ),
+            _SettingsTile(
+              icon: Icons.map_rounded,
+              title: 'Mapa territorial',
+              subtitle: 'Ver fincas geolocalizadas',
+              onTap: () => context.go('/mapa-fincas'),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Sync section
+          Text(
+            'Sincronización',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: EcoRutaColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+          ),
+          const SizedBox(height: 8),
+          _SettingsTile(
+            icon: Icons.sync_rounded,
+            title: 'Cola de sincronización',
+            subtitle: 'Ver registros pendientes de subir',
+            onTap: () => context.go('/pendientes'),
+          ),
+
+          const SizedBox(height: 16),
+
+          Text(
+            'Cuenta',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: EcoRutaColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+          ),
+          const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.person_outline_rounded,
             title: 'Perfil',
             subtitle: user.email,
-          ),
-          _SettingsTile(
-            icon: Icons.sync_rounded,
-            title: 'Sincronización',
-            subtitle: 'Gestionar cola de sincronización',
           ),
           _SettingsTile(
             icon: Icons.security_rounded,
@@ -687,13 +807,14 @@ class _MoreTab extends ConsumerWidget {
           _SettingsTile(
             icon: Icons.gavel_rounded,
             title: 'Privacidad',
-            subtitle: 'Ley 1581/2012 - Habeas Data',
+            subtitle: 'Ley 1581/2012 — Habeas Data',
           ),
           _SettingsTile(
             icon: Icons.info_outline_rounded,
             title: 'Acerca de',
             subtitle: 'EcoRuta Cafetera v2.4.0 • UIS',
           ),
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -714,17 +835,25 @@ class _MoreTab extends ConsumerWidget {
       ),
     );
   }
+
+  Color _roleColor(UserRole r) => switch (r) {
+        UserRole.administrador => EcoRutaColors.primary,
+        UserRole.tecnicoCampo => EcoRutaColors.secondary,
+        UserRole.consultor => EcoRutaColors.tertiary,
+      };
 }
 
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   @override
@@ -738,13 +867,17 @@ class _SettingsTile extends StatelessWidget {
             color: EcoRutaColors.primaryContainer,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: EcoRutaColors.onPrimaryContainer, size: 20),
+          child: Icon(icon,
+              color: EcoRutaColors.onPrimaryContainer, size: 20),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right_rounded,
-            color: EcoRutaColors.outline),
-        onTap: () {},
+        trailing: onTap != null
+            ? const Icon(Icons.chevron_right_rounded,
+                color: EcoRutaColors.outline)
+            : null,
+        onTap: onTap,
       ),
     );
   }
@@ -773,17 +906,23 @@ class _ProfileCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: EcoRutaColors.primaryContainer,
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: EcoRutaColors.primaryFixed, width: 2),
+                    border: Border.all(
+                        color: EcoRutaColors.primaryFixed, width: 2),
                   ),
                   child: Center(
                     child: Text(
-                      user.nombre.split(' ').map((n) => n[0]).take(2).join(),
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: EcoRutaColors.onPrimaryContainer,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      user.nombre
+                          .split(' ')
+                          .map((n) => n[0])
+                          .take(2)
+                          .join(),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(
+                            color: EcoRutaColors.onPrimaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ),
                 ),
@@ -808,17 +947,18 @@ class _ProfileCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Hola,',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: EcoRutaColors.onSurfaceVariant,
-                        ),
-                  ),
+                  Text('Hola,',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(
+                              color: EcoRutaColors.onSurfaceVariant)),
                   Text(
                     user.nombre,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: EcoRutaColors.primary,
-                        ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(color: EcoRutaColors.primary),
                   ),
                   Text(
                     user.rol.displayName,
@@ -834,9 +974,10 @@ class _ProfileCard extends StatelessWidget {
                       const SizedBox(width: 2),
                       Text(
                         'Municipio: $municipio',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: EcoRutaColors.onSurfaceVariant,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: EcoRutaColors.onSurfaceVariant,
+                                ),
                       ),
                     ],
                   ),
@@ -853,57 +994,63 @@ class _ProfileCard extends StatelessWidget {
 class _PendingSyncCard extends StatelessWidget {
   final int count;
   final bool isOnline;
+  final VoidCallback onTap;
 
-  const _PendingSyncCard({required this.count, required this.isOnline});
+  const _PendingSyncCard({
+    required this.count,
+    required this.isOnline,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: EcoRutaColors.tertiaryFixed,
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: EcoRutaColors.tertiaryFixedDim.withOpacity(0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: EcoRutaColors.tertiaryContainer.withOpacity(0.2),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: EcoRutaColors.tertiaryFixed,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: EcoRutaColors.tertiaryFixedDim.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: EcoRutaColors.tertiaryContainer.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_sync_rounded,
+                  color: EcoRutaColors.tertiary),
             ),
-            child: const Icon(Icons.cloud_sync_rounded,
-                color: EcoRutaColors.tertiary),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pendientes Sync',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: EcoRutaColors.onTertiaryFixed,
-                      ),
-                ),
-                Text(
-                  '$count registros por sincronizar',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: EcoRutaColors.onTertiaryFixed.withOpacity(0.9),
-                      ),
-                ),
-              ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pendientes Sync',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: EcoRutaColors.onTertiaryFixed,
+                        ),
+                  ),
+                  Text(
+                    '$count registros por sincronizar — toca para gestionar',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: EcoRutaColors.onTertiaryFixed
+                              .withOpacity(0.9),
+                        ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.arrow_forward_rounded,
+            const Icon(Icons.arrow_forward_rounded,
                 color: EcoRutaColors.tertiary),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

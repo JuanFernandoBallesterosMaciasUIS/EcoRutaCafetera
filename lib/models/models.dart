@@ -208,6 +208,118 @@ class Indicador {
   });
 }
 
+/// Modelo de visita (indicadores de sostenibilidad por visita a finca)
+class Visita {
+  final int? id;
+  final int fincaId;
+  final int tecnicoId;
+  final String tecnicoNombre;
+  final DateTime fecha;
+
+  // Sección Ambiental
+  final double coberturaVegetal; // 0-100%
+  final bool tieneFuenteAgua;
+  final bool manejoAdecuadoResiduos;
+  final bool usoAgroquimicos;
+  final bool practicasAgroforestales;
+
+  // Sección Económica
+  final double produccionKgAnio;
+  final double precioKgCOP;
+  final double costoProduccionCOP;
+  final bool tieneOtrosIngresos;
+
+  // Sección Social
+  final int personasHogar;
+  final int menoresEdad;
+  final String nivelEducativo;
+  final bool seguridadAlimentaria;
+  final bool accesoProgramasGobierno;
+
+  final String? observaciones;
+  final SyncStatus syncStatus;
+
+  const Visita({
+    this.id,
+    required this.fincaId,
+    required this.tecnicoId,
+    required this.tecnicoNombre,
+    required this.fecha,
+    required this.coberturaVegetal,
+    required this.tieneFuenteAgua,
+    required this.manejoAdecuadoResiduos,
+    required this.usoAgroquimicos,
+    required this.practicasAgroforestales,
+    required this.produccionKgAnio,
+    required this.precioKgCOP,
+    required this.costoProduccionCOP,
+    required this.tieneOtrosIngresos,
+    required this.personasHogar,
+    required this.menoresEdad,
+    required this.nivelEducativo,
+    required this.seguridadAlimentaria,
+    required this.accesoProgramasGobierno,
+    this.observaciones,
+    this.syncStatus = SyncStatus.pendiente,
+  });
+
+  double get ingresoBrutoAnual => produccionKgAnio * precioKgCOP;
+  double get margenNeto => ingresoBrutoAnual - costoProduccionCOP;
+
+  Visita copyWith({SyncStatus? syncStatus}) {
+    return Visita(
+      id: id,
+      fincaId: fincaId,
+      tecnicoId: tecnicoId,
+      tecnicoNombre: tecnicoNombre,
+      fecha: fecha,
+      coberturaVegetal: coberturaVegetal,
+      tieneFuenteAgua: tieneFuenteAgua,
+      manejoAdecuadoResiduos: manejoAdecuadoResiduos,
+      usoAgroquimicos: usoAgroquimicos,
+      practicasAgroforestales: practicasAgroforestales,
+      produccionKgAnio: produccionKgAnio,
+      precioKgCOP: precioKgCOP,
+      costoProduccionCOP: costoProduccionCOP,
+      tieneOtrosIngresos: tieneOtrosIngresos,
+      personasHogar: personasHogar,
+      menoresEdad: menoresEdad,
+      nivelEducativo: nivelEducativo,
+      seguridadAlimentaria: seguridadAlimentaria,
+      accesoProgramasGobierno: accesoProgramasGobierno,
+      observaciones: observaciones,
+      syncStatus: syncStatus ?? this.syncStatus,
+    );
+  }
+}
+
+/// Modelo de usuario del sistema (para gestión admin)
+class UsuarioSistema {
+  final int id;
+  final String nombre;
+  final String email;
+  final UserRole rol;
+  final int? municipioAsignado;
+  final bool activo;
+
+  const UsuarioSistema({
+    required this.id,
+    required this.nombre,
+    required this.email,
+    required this.rol,
+    this.municipioAsignado,
+    this.activo = true,
+  });
+
+  String get municipioNombre => municipioAsignado == null
+      ? 'Sin asignar'
+      : Municipio.municipiosPiloto
+          .firstWhere((m) => m.id == municipioAsignado,
+              orElse: () => const Municipio(
+                  id: 0, nombre: 'Desconocido', departamento: '', codigoDane: ''))
+          .nombre;
+}
+
 /// Datos demo del técnico
 const AppUser demoUser = AppUser(
   id: 1,
@@ -216,6 +328,53 @@ const AppUser demoUser = AppUser(
   rol: UserRole.tecnicoCampo,
   municipioAsignado: 2,
 );
+
+const AppUser demoAdmin = AppUser(
+  id: 2,
+  nombre: 'Laura Pedraza',
+  email: 'laura.pedraza@gobsantander.gov.co',
+  rol: UserRole.administrador,
+);
+
+const AppUser demoConsultor = AppUser(
+  id: 3,
+  nombre: 'Jorge Cárdenas',
+  email: 'jorge.cardenas@fedecafe.com.co',
+  rol: UserRole.consultor,
+  municipioAsignado: 4,
+);
+
+/// Usuarios demo del sistema
+final List<UsuarioSistema> demoUsuarios = [
+  const UsuarioSistema(
+    id: 1,
+    nombre: 'Iván Martínez',
+    email: 'ivan.martinez@gobsantander.gov.co',
+    rol: UserRole.tecnicoCampo,
+    municipioAsignado: 2,
+  ),
+  const UsuarioSistema(
+    id: 2,
+    nombre: 'Laura Pedraza',
+    email: 'laura.pedraza@gobsantander.gov.co',
+    rol: UserRole.administrador,
+  ),
+  const UsuarioSistema(
+    id: 3,
+    nombre: 'Jorge Cárdenas',
+    email: 'jorge.cardenas@fedecafe.com.co',
+    rol: UserRole.consultor,
+    municipioAsignado: 4,
+  ),
+  const UsuarioSistema(
+    id: 4,
+    nombre: 'Rosa Elena Vargas',
+    email: 'rosa.vargas@gobsantander.gov.co',
+    rol: UserRole.tecnicoCampo,
+    municipioAsignado: 1,
+    activo: false,
+  ),
+];
 
 /// Fincas demo
 final List<Finca> demoFincas = [
@@ -270,5 +429,78 @@ final List<Finca> demoFincas = [
     municipioId: 4,
     syncStatus: SyncStatus.subido,
     fechaRegistro: DateTime(2024, 4, 18),
+  ),
+];
+
+/// Visitas demo
+final List<Visita> demoVisitas = [
+  Visita(
+    id: 1,
+    fincaId: 1,
+    tecnicoId: 1,
+    tecnicoNombre: 'Iván Martínez',
+    fecha: DateTime(2024, 3, 20),
+    coberturaVegetal: 75,
+    tieneFuenteAgua: true,
+    manejoAdecuadoResiduos: true,
+    usoAgroquimicos: false,
+    practicasAgroforestales: true,
+    produccionKgAnio: 2800,
+    precioKgCOP: 2200,
+    costoProduccionCOP: 3500000,
+    tieneOtrosIngresos: false,
+    personasHogar: 5,
+    menoresEdad: 2,
+    nivelEducativo: 'Secundaria',
+    seguridadAlimentaria: true,
+    accesoProgramasGobierno: true,
+    observaciones: 'Finca en buen estado. Propietario comprometido con prácticas sostenibles.',
+    syncStatus: SyncStatus.subido,
+  ),
+  Visita(
+    id: 2,
+    fincaId: 1,
+    tecnicoId: 1,
+    tecnicoNombre: 'Iván Martínez',
+    fecha: DateTime(2024, 5, 10),
+    coberturaVegetal: 80,
+    tieneFuenteAgua: true,
+    manejoAdecuadoResiduos: true,
+    usoAgroquimicos: false,
+    practicasAgroforestales: true,
+    produccionKgAnio: 3100,
+    precioKgCOP: 2350,
+    costoProduccionCOP: 3800000,
+    tieneOtrosIngresos: true,
+    personasHogar: 5,
+    menoresEdad: 2,
+    nivelEducativo: 'Secundaria',
+    seguridadAlimentaria: true,
+    accesoProgramasGobierno: true,
+    observaciones: 'Mejora notable en producción. Se incorporaron 200 matas nuevas.',
+    syncStatus: SyncStatus.subido,
+  ),
+  Visita(
+    id: 3,
+    fincaId: 2,
+    tecnicoId: 1,
+    tecnicoNombre: 'Iván Martínez',
+    fecha: DateTime(2024, 4, 5),
+    coberturaVegetal: 55,
+    tieneFuenteAgua: false,
+    manejoAdecuadoResiduos: false,
+    usoAgroquimicos: true,
+    practicasAgroforestales: false,
+    produccionKgAnio: 4200,
+    precioKgCOP: 2200,
+    costoProduccionCOP: 6000000,
+    tieneOtrosIngresos: false,
+    personasHogar: 7,
+    menoresEdad: 3,
+    nivelEducativo: 'Primaria',
+    seguridadAlimentaria: false,
+    accesoProgramasGobierno: false,
+    observaciones: 'Se recomienda capacitación en manejo sostenible. Sin acceso a fuente hídrica propia.',
+    syncStatus: SyncStatus.pendiente,
   ),
 ];

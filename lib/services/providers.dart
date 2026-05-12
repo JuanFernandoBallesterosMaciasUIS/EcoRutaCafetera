@@ -3,12 +3,10 @@ import '../models/models.dart';
 
 // ─── Connectivity State ────────────────────────────────────────────────────
 
-/// Simulates connectivity state (in real app, uses connectivity_plus)
 class ConnectivityNotifier extends StateNotifier<bool> {
-  ConnectivityNotifier() : super(false); // starts offline for demo
+  ConnectivityNotifier() : super(false);
 
   void setOnline(bool isOnline) => state = isOnline;
-
   void toggle() => state = !state;
 }
 
@@ -23,13 +21,18 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   AuthNotifier() : super(null);
 
   Future<bool> login(String username, String password) async {
-    // Simulates API call
     await Future.delayed(const Duration(milliseconds: 800));
-    if (username.isNotEmpty && password.length >= 4) {
+    if (username.isEmpty || password.length < 4) return false;
+    // Role-based demo login
+    final u = username.toLowerCase().trim();
+    if (u == 'admin' || u == 'laura') {
+      state = demoAdmin;
+    } else if (u == 'consultor' || u == 'jorge') {
+      state = demoConsultor;
+    } else {
       state = demoUser;
-      return true;
     }
-    return false;
+    return true;
   }
 
   void logout() => state = null;
@@ -42,7 +45,7 @@ final authProvider = StateNotifierProvider<AuthNotifier, AppUser?>((ref) {
 // ─── Fincas State ────────────────────────────────────────────────────────
 
 class FincasNotifier extends StateNotifier<List<Finca>> {
-  FincasNotifier() : super(demoFincas);
+  FincasNotifier() : super(List.from(demoFincas));
 
   void addFinca(Finca finca) {
     final newFinca = finca.copyWith(
@@ -57,16 +60,128 @@ class FincasNotifier extends StateNotifier<List<Finca>> {
     state = state.map((f) => f.id == updated.id ? updated : f).toList();
   }
 
+  void deleteFinca(int id) {
+    state = state.where((f) => f.id != id).toList();
+  }
+
+  void syncAll() {
+    state = state.map((f) {
+      if (f.syncStatus == SyncStatus.pendiente ||
+          f.syncStatus == SyncStatus.error) {
+        return f.copyWith(syncStatus: SyncStatus.subido);
+      }
+      return f;
+    }).toList();
+  }
+
   int get pendingCount =>
       state.where((f) => f.syncStatus == SyncStatus.pendiente).length;
+  int get errorCount =>
+      state.where((f) => f.syncStatus == SyncStatus.error).length;
 }
 
-final fincasProvider = StateNotifierProvider<FincasNotifier, List<Finca>>((ref) {
+final fincasProvider =
+    StateNotifierProvider<FincasNotifier, List<Finca>>((ref) {
   return FincasNotifier();
 });
 
 final pendingSyncCountProvider = Provider<int>((ref) {
-  return ref.watch(fincasProvider.notifier).pendingCount;
+  final fincas = ref.watch(fincasProvider);
+  final visitas = ref.watch(visitasProvider);
+  final fincasPending =
+      fincas.where((f) => f.syncStatus == SyncStatus.pendiente).length;
+  final visitasPending =
+      visitas.where((v) => v.syncStatus == SyncStatus.pendiente).length;
+  return fincasPending + visitasPending;
+});
+
+// ─── Visitas State ────────────────────────────────────────────────────────
+
+class VisitasNotifier extends StateNotifier<List<Visita>> {
+  VisitasNotifier() : super(List.from(demoVisitas));
+
+  void addVisita(Visita visita) {
+    final newVisita = Visita(
+      id: state.length + 1,
+      fincaId: visita.fincaId,
+      tecnicoId: visita.tecnicoId,
+      tecnicoNombre: visita.tecnicoNombre,
+      fecha: visita.fecha,
+      coberturaVegetal: visita.coberturaVegetal,
+      tieneFuenteAgua: visita.tieneFuenteAgua,
+      manejoAdecuadoResiduos: visita.manejoAdecuadoResiduos,
+      usoAgroquimicos: visita.usoAgroquimicos,
+      practicasAgroforestales: visita.practicasAgroforestales,
+      produccionKgAnio: visita.produccionKgAnio,
+      precioKgCOP: visita.precioKgCOP,
+      costoProduccionCOP: visita.costoProduccionCOP,
+      tieneOtrosIngresos: visita.tieneOtrosIngresos,
+      personasHogar: visita.personasHogar,
+      menoresEdad: visita.menoresEdad,
+      nivelEducativo: visita.nivelEducativo,
+      seguridadAlimentaria: visita.seguridadAlimentaria,
+      accesoProgramasGobierno: visita.accesoProgramasGobierno,
+      observaciones: visita.observaciones,
+      syncStatus: SyncStatus.pendiente,
+    );
+    state = [...state, newVisita];
+  }
+
+  List<Visita> forFinca(int fincaId) =>
+      state.where((v) => v.fincaId == fincaId).toList()
+        ..sort((a, b) => b.fecha.compareTo(a.fecha));
+
+  void syncAll() {
+    state = state
+        .map((v) => v.syncStatus == SyncStatus.pendiente
+            ? v.copyWith(syncStatus: SyncStatus.subido)
+            : v)
+        .toList();
+  }
+}
+
+final visitasProvider =
+    StateNotifierProvider<VisitasNotifier, List<Visita>>((ref) {
+  return VisitasNotifier();
+});
+
+// ─── Usuarios State (admin only) ──────────────────────────────────────────
+
+class UsuariosNotifier extends StateNotifier<List<UsuarioSistema>> {
+  UsuariosNotifier() : super(List.from(demoUsuarios));
+
+  void toggleActivo(int id) {
+    state = state.map((u) {
+      if (u.id == id) {
+        return UsuarioSistema(
+          id: u.id,
+          nombre: u.nombre,
+          email: u.email,
+          rol: u.rol,
+          municipioAsignado: u.municipioAsignado,
+          activo: !u.activo,
+        );
+      }
+      return u;
+    }).toList();
+  }
+
+  void addUsuario(UsuarioSistema usuario) {
+    final newUser = UsuarioSistema(
+      id: state.length + 1,
+      nombre: usuario.nombre,
+      email: usuario.email,
+      rol: usuario.rol,
+      municipioAsignado: usuario.municipioAsignado,
+      activo: true,
+    );
+    state = [...state, newUser];
+  }
+}
+
+final usuariosProvider =
+    StateNotifierProvider<UsuariosNotifier, List<UsuarioSistema>>((ref) {
+  return UsuariosNotifier();
 });
 
 // ─── Navigation ──────────────────────────────────────────────────────────
