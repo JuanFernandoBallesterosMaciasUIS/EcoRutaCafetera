@@ -1,8 +1,9 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/providers.dart';
@@ -18,14 +19,16 @@ class MapaFincasScreen extends ConsumerStatefulWidget {
 }
 
 class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
+  final _mapController = MapController();
   int? _selectedMunicipio;
   Finca? _selectedFinca;
-  final TransformationController _transformController =
-      TransformationController();
+
+  // Centro del cordón cafetero de Santander (Barbosa / Vélez)
+  static const _center = LatLng(6.1900, -73.6100);
 
   @override
   void dispose() {
-    _transformController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -35,6 +38,8 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
     final filtered = _selectedMunicipio == null
         ? fincas
         : fincas.where((f) => f.municipioId == _selectedMunicipio).toList();
+
+    final withCoords = filtered.where((f) => f.latitud != null).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -48,9 +53,9 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.center_focus_strong_rounded),
-            tooltip: 'Centrar mapa',
+            tooltip: 'Centrar',
             onPressed: () {
-              _transformController.value = Matrix4.identity();
+              _mapController.move(_center, 13);
               setState(() => _selectedFinca = null);
             },
           ),
@@ -61,8 +66,7 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
           // Filter chips
           Container(
             color: EcoRutaColors.surface,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -70,8 +74,7 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
                   _ChipFilter(
                     label: 'Todos (${fincas.length})',
                     isSelected: _selectedMunicipio == null,
-                    onTap: () =>
-                        setState(() => _selectedMunicipio = null),
+                    onTap: () => setState(() => _selectedMunicipio = null),
                   ),
                   ...Municipio.municipiosPiloto.map((m) {
                     final count =
@@ -92,67 +95,79 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
             ),
           ),
 
-          // Map area
+          // Map
           Expanded(
             child: Stack(
               children: [
-                InteractiveViewer(
-                  transformationController: _transformController,
-                  minScale: 0.5,
-                  maxScale: 4.0,
-                  boundaryMargin: const EdgeInsets.all(80),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedFinca = null),
-                    child: SizedBox(
-                      width: 600,
-                      height: 600,
-                      child: CustomPaint(
-                        painter: _MapPainter(
-                          fincas: filtered,
-                          selectedFinca: _selectedFinca,
-                        ),
-                        child: Stack(
-                          children: filtered
-                              .map((f) => _FincaMarker(
-                                    finca: f,
-                                    allFincas: filtered,
-                                    isSelected: _selectedFinca?.id == f.id,
-                                    onTap: () => setState(
-                                        () => _selectedFinca = f),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ),
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _center,
+                    initialZoom: 12.5,
+                    onTap: (_, __) => setState(() => _selectedFinca = null),
                   ),
-                ).animate().fadeIn(duration: 600.ms),
+                  children: [
+                    // OpenStreetMap tiles
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.ecoruta.cafetera',
+                      maxZoom: 19,
+                    ),
 
-                // Legend
+                    // Farm markers
+                    MarkerLayer(
+                      markers: withCoords.map((f) {
+                        final isSelected = _selectedFinca?.id == f.id;
+                        return Marker(
+                          point: LatLng(f.latitud!, f.longitud!),
+                          width: isSelected ? 52 : 40,
+                          height: isSelected ? 52 : 40,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedFinca = f);
+                              _mapController.move(
+                                LatLng(f.latitud!, f.longitud!),
+                                15,
+                              );
+                            },
+                            child: _FarmMarkerWidget(
+                              syncStatus: f.syncStatus,
+                              isSelected: isSelected,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+
+                // Legend top-right
                 Positioned(
                   top: 12,
                   right: 12,
                   child: _MapLegend(),
                 ),
 
-                // Stats overlay bottom-left
+                // Stats bottom-left
                 Positioned(
-                  bottom: 12,
+                  bottom: _selectedFinca != null ? 180 : 12,
                   left: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                        horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                         )
                       ],
                     ),
                     child: Text(
-                      '${filtered.length} finca${filtered.length != 1 ? 's' : ''} visibles',
+                      '${withCoords.length} finca${withCoords.length != 1 ? 's' : ''} en mapa',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -160,6 +175,24 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
                       ),
                     ),
                   ).animate().fadeIn(delay: 400.ms),
+                ),
+
+                // OSM attribution
+                Positioned(
+                  bottom: _selectedFinca != null ? 180 : 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      '© OpenStreetMap',
+                      style: TextStyle(fontSize: 9, color: Colors.black54),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -179,180 +212,16 @@ class _MapaFincasScreenState extends ConsumerState<MapaFincasScreen> {
   }
 }
 
-// ─── Map Painter ─────────────────────────────────────────────────────────────
+// ─── Farm Marker Widget ───────────────────────────────────────────────────────
 
-class _MapPainter extends CustomPainter {
-  final List<Finca> fincas;
-  final Finca? selectedFinca;
-
-  const _MapPainter({required this.fincas, this.selectedFinca});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Background terrain
-    final bgPaint = Paint()..color = const Color(0xFFE8F5E9);
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    // Topographic contour lines
-    final contourPaint = Paint()
-      ..color = EcoRutaColors.primary.withOpacity(0.07)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    for (var i = 1; i <= 8; i++) {
-      final path = Path();
-      final y = size.height * i / 9;
-      path.moveTo(0, y);
-      for (var x = 0.0; x <= size.width; x += 5) {
-        final offset = 15 *
-            math.sin(x * 0.05 + i) *
-            math.cos(x * 0.02 - i * 0.5);
-        path.lineTo(x, y + offset);
-      }
-      canvas.drawPath(path, contourPaint);
-    }
-
-    // Roads
-    final roadPaint = Paint()
-      ..color = const Color(0xFFBCAAA4).withOpacity(0.5)
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final road1 = Path();
-    road1.moveTo(0, size.height * 0.6);
-    road1.cubicTo(
-        size.width * 0.3, size.height * 0.55,
-        size.width * 0.6, size.height * 0.65,
-        size.width, size.height * 0.5);
-    canvas.drawPath(road1, roadPaint);
-
-    final road2 = Path();
-    road2.moveTo(size.width * 0.5, 0);
-    road2.cubicTo(
-        size.width * 0.45, size.height * 0.3,
-        size.width * 0.55, size.height * 0.6,
-        size.width * 0.5, size.height);
-    canvas.drawPath(road2, roadPaint);
-
-    // River
-    final riverPaint = Paint()
-      ..color = const Color(0xFF64B5F6).withOpacity(0.4)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final river = Path();
-    river.moveTo(0, size.height * 0.35);
-    river.cubicTo(
-        size.width * 0.25, size.height * 0.4,
-        size.width * 0.5, size.height * 0.3,
-        size.width * 0.75, size.height * 0.45);
-    river.cubicTo(
-        size.width * 0.85, size.height * 0.5,
-        size.width * 0.9, size.height * 0.55,
-        size.width, size.height * 0.6);
-    canvas.drawPath(river, riverPaint);
-
-    // Grid
-    final gridPaint = Paint()
-      ..color = EcoRutaColors.primary.withOpacity(0.04)
-      ..strokeWidth = 0.5;
-    for (var i = 1; i < 6; i++) {
-      canvas.drawLine(
-          Offset(size.width * i / 6, 0),
-          Offset(size.width * i / 6, size.height),
-          gridPaint);
-      canvas.drawLine(
-          Offset(0, size.height * i / 6),
-          Offset(size.width, size.height * i / 6),
-          gridPaint);
-    }
-
-    // Compass
-    _drawCompass(canvas, size);
-  }
-
-  void _drawCompass(Canvas canvas, Size size) {
-    final cx = size.width - 30;
-    final cy = size.height - 30;
-    final compassPaint = Paint()
-      ..color = EcoRutaColors.primary.withOpacity(0.5)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    final fillPaint = Paint()
-      ..color = EcoRutaColors.primary.withOpacity(0.8)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(Offset(cx, cy), 16, compassPaint);
-
-    // North arrow
-    final arrowPath = Path();
-    arrowPath.moveTo(cx, cy - 12);
-    arrowPath.lineTo(cx - 4, cy + 4);
-    arrowPath.lineTo(cx, cy);
-    arrowPath.close();
-    canvas.drawPath(arrowPath, fillPaint);
-
-    final arrowPath2 = Path();
-    arrowPath2.moveTo(cx, cy - 12);
-    arrowPath2.lineTo(cx + 4, cy + 4);
-    arrowPath2.lineTo(cx, cy);
-    arrowPath2.close();
-    canvas.drawPath(arrowPath2,
-        Paint()..color = Colors.grey.withOpacity(0.5));
-  }
-
-  @override
-  bool shouldRepaint(_MapPainter old) =>
-      old.fincas != fincas || old.selectedFinca != selectedFinca;
-}
-
-// ─── Farm Marker ─────────────────────────────────────────────────────────────
-
-class _FincaMarker extends StatelessWidget {
-  final Finca finca;
-  final List<Finca> allFincas;
+class _FarmMarkerWidget extends StatelessWidget {
+  final SyncStatus syncStatus;
   final bool isSelected;
-  final VoidCallback onTap;
 
-  const _FincaMarker({
-    required this.finca,
-    required this.allFincas,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _FarmMarkerWidget(
+      {required this.syncStatus, required this.isSelected});
 
-  // Normalize coordinates to 600x600 canvas
-  Offset _toCanvasPos(double lat, double lng, Size canvas) {
-    if (allFincas.isEmpty) return Offset(canvas.width / 2, canvas.height / 2);
-
-    final lats = allFincas
-        .where((f) => f.latitud != null)
-        .map((f) => f.latitud!);
-    final lngs = allFincas
-        .where((f) => f.longitud != null)
-        .map((f) => f.longitud!);
-
-    if (lats.isEmpty) return Offset(canvas.width / 2, canvas.height / 2);
-
-    final minLat = lats.reduce(math.min) - 0.02;
-    final maxLat = lats.reduce(math.max) + 0.02;
-    final minLng = lngs.reduce(math.min) - 0.02;
-    final maxLng = lngs.reduce(math.max) + 0.02;
-
-    final x = (lng - minLng) / (maxLng - minLng) * canvas.width * 0.8 +
-        canvas.width * 0.1;
-    // Lat inverted: higher lat = lower y
-    final y = (1 - (lat - minLat) / (maxLat - minLat)) *
-            canvas.height *
-            0.8 +
-        canvas.height * 0.1;
-
-    return Offset(x, y);
-  }
-
-  Color get _markerColor => switch (finca.syncStatus) {
+  Color get _color => switch (syncStatus) {
         SyncStatus.subido => EcoRutaColors.secondary,
         SyncStatus.pendiente => EcoRutaColors.tertiary,
         SyncStatus.subiendo => EcoRutaColors.primary,
@@ -361,124 +230,40 @@ class _FincaMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (finca.latitud == null) return const SizedBox.shrink();
-
-    return Positioned.fill(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final pos = _toCanvasPos(
-            finca.latitud!,
-            finca.longitud!,
-            Size(constraints.maxWidth, constraints.maxHeight),
-          );
-
-          return Stack(
-            children: [
-              Positioned(
-                left: pos.dx - (isSelected ? 22 : 18),
-                top: pos.dy - (isSelected ? 44 : 36),
-                child: GestureDetector(
-                  onTap: onTap,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Pulse ring
-                        if (isSelected)
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _markerColor.withOpacity(0.4),
-                                width: 3,
-                              ),
-                            ),
-                            child: Container(
-                              margin: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: _markerColor,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _markerColor.withOpacity(0.4),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  )
-                                ],
-                              ),
-                              child: const Icon(Icons.agriculture_rounded,
-                                  color: Colors.white, size: 18),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: _markerColor,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _markerColor.withOpacity(0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
-                            ),
-                            child: const Icon(Icons.agriculture_rounded,
-                                color: Colors.white, size: 16),
-                          ),
-
-                        // Stem
-                        Container(
-                          width: 2,
-                          height: 8,
-                          color: _markerColor,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: isSelected ? 44 : 32,
+          height: isSelected ? 44 : 32,
+          decoration: BoxDecoration(
+            color: _color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: isSelected ? 3 : 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _color.withValues(alpha: isSelected ? 0.5 : 0.3),
+                blurRadius: isSelected ? 12 : 6,
+                spreadRadius: isSelected ? 3 : 0,
               ),
-
-              // Label
-              if (isSelected)
-                Positioned(
-                  left: pos.dx - 60,
-                  top: pos.dy - 70,
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 120),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 6,
-                        )
-                      ],
-                    ),
-                    child: Text(
-                      finca.nombre,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _markerColor,
-                      ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
             ],
-          );
-        },
-      ),
+          ),
+          child: Icon(
+            Icons.agriculture_rounded,
+            color: Colors.white,
+            size: isSelected ? 22 : 16,
+          ),
+        ),
+        Container(
+          width: 2,
+          height: 6,
+          color: _color,
+        ),
+      ],
     );
   }
 }
@@ -491,10 +276,11 @@ class _MapLegend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1), blurRadius: 8)
         ],
       ),
       child: Column(
@@ -548,7 +334,7 @@ class _LegendItem extends StatelessWidget {
   }
 }
 
-// ─── Selected Finca Card ─────────────────────────────────────────────────────
+// ─── Selected Finca Card ──────────────────────────────────────────────────────
 
 class _SelectedFincaCard extends StatelessWidget {
   final Finca finca;
@@ -568,11 +354,12 @@ class _SelectedFincaCard extends StatelessWidget {
         color: EcoRutaColors.surface,
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 12,
               offset: const Offset(0, -2))
         ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -596,17 +383,30 @@ class _SelectedFincaCard extends StatelessWidget {
                   children: [
                     Text(
                       finca.nombre,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(
                             color: EcoRutaColors.primary,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
                     Text(
                       '${finca.propietario} • ${finca.municipioNombre}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: EcoRutaColors.onSurfaceVariant,
-                          ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                              color: EcoRutaColors.onSurfaceVariant),
                     ),
+                    if (finca.latitud != null)
+                      Text(
+                        '${finca.latitud!.toStringAsFixed(5)}°N, '
+                        '${finca.longitud!.toStringAsFixed(5)}°O',
+                        style: const TextStyle(
+                            fontSize: 10,
+                            color: EcoRutaColors.onSurfaceVariant),
+                      ),
                   ],
                 ),
               ),
@@ -616,14 +416,15 @@ class _SelectedFincaCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               _InfoPill(
                   icon: Icons.landscape_rounded,
                   label: '${finca.hectareas} ha'),
               const SizedBox(width: 8),
-              _InfoPill(icon: Icons.eco_rounded, label: finca.variedadCafe),
+              _InfoPill(
+                  icon: Icons.eco_rounded, label: finca.variedadCafe),
               const SizedBox(width: 8),
               SyncStatusChip(status: finca.syncStatus),
             ],
@@ -678,7 +479,7 @@ class _InfoPill extends StatelessWidget {
   }
 }
 
-// ─── Filter Chip ─────────────────────────────────────────────────────────────
+// ─── Filter Chip ──────────────────────────────────────────────────────────────
 
 class _ChipFilter extends StatelessWidget {
   final String label;
@@ -696,7 +497,8 @@ class _ChipFilter extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
               ? EcoRutaColors.primary
