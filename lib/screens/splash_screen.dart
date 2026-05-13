@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-import '../services/providers.dart';
-import '../widgets/widgets.dart';
 
 const _kCoffeeBgUrl =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAIA-iIqP6BkHzz5FqBP4MS1RE2K6CkHFWLfA23AyQk8a4LZaRwl6WMhnL9HXLgTlG3OhUWTxIdqQXWpVODXm7Vv35P3nic7t5QXP6eKLIuGwn02QaCTfxL-vLhFLCbWSaPtoMAcApKZEwy92Hmex3Z1SOOafqdjjPQcE7irSK1jRY53c18PDAZqI5Z-qCs0W9LhUu7l5ZRtnTQLe3Vi-nQSyW7e5zdhWzRq6me9QegWH8A6wtURmFybA-sdraKCyAuCZsmH1GLrQg';
 
-class SplashScreen extends ConsumerWidget {
+class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isOnline = ref.watch(connectivityProvider);
-    return Scaffold(
-      body: _SplashBody(isOnline: isOnline),
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: _SplashBody(),
     );
   }
 }
@@ -25,8 +21,7 @@ class SplashScreen extends ConsumerWidget {
 // ─── Splash Body ────────────────────────────────────────────────────────────
 
 class _SplashBody extends StatelessWidget {
-  final bool isOnline;
-  const _SplashBody({required this.isOnline});
+  const _SplashBody();
 
   @override
   Widget build(BuildContext context) {
@@ -86,13 +81,6 @@ class _SplashBody extends StatelessWidget {
                               .animate(delay: 200.ms)
                               .fadeIn(duration: 500.ms),
 
-                          const SizedBox(height: 24),
-
-                          // Connectivity badge
-                          ConnectivityBadge(isOnline: isOnline)
-                              .animate(delay: 400.ms)
-                              .fadeIn(duration: 400.ms),
-
                           const SizedBox(height: 32),
 
                           // Action buttons
@@ -127,11 +115,11 @@ class _LogoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(9999),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -181,7 +169,7 @@ class _LogoCard extends StatelessWidget {
               color: EcoRutaColors.primary,
               height: 1.1,
             ).copyWith(
-              color: EcoRutaColors.primary.withOpacity(0.8),
+              color: EcoRutaColors.primary.withValues(alpha: 0.8),
             ),
           ),
         ],
@@ -242,7 +230,7 @@ class _ActionButtons extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               elevation: 8,
-              shadowColor: EcoRutaColors.primary.withOpacity(0.4),
+              shadowColor: EcoRutaColors.primary.withValues(alpha: 0.4),
             ),
             child: Text(
               'Iniciar Sesión',
@@ -297,7 +285,7 @@ class _SplashFooter extends StatelessWidget {
               Icon(
                 Icons.verified_rounded,
                 size: 16,
-                color: EcoRutaColors.onSurfaceVariant.withOpacity(0.6),
+                color: EcoRutaColors.onSurfaceVariant.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 4),
               Text(
@@ -306,7 +294,7 @@ class _SplashFooter extends StatelessWidget {
                   fontSize: 12,
                   letterSpacing: 0.04 * 12,
                   fontWeight: FontWeight.w500,
-                  color: EcoRutaColors.onSurfaceVariant.withOpacity(0.6),
+                  color: EcoRutaColors.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
               ),
             ],
