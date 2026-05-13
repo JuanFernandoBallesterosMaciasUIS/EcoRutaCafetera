@@ -301,7 +301,7 @@ class _SplashFooter extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                'Versión 2.4.0 • 2024',
+                'Versión 1.0.0 • 2026',
                 style: GoogleFonts.hankenGrotesk(
                   fontSize: 12,
                   letterSpacing: 0.04 * 12,
