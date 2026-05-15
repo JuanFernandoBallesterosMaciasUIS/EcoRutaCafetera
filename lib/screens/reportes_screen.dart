@@ -23,8 +23,6 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   String _agrupacion = 'Municipio';
   DateTimeRange? _dateRange;
   bool _isGenerating = false;
-  String? _lastGenerated;
-  List<int>? _lastBytes;
 
   static const _agrupaciones = ['Municipio', 'Vereda', 'Finca'];
 
@@ -262,14 +260,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               ),
             ).animate().fadeIn(delay: 300.ms),
 
-            if (_lastGenerated != null) ...[
-              const SizedBox(height: 16),
-              _LastGeneratedCard(
-                filename: _lastGenerated!,
-                onDownload: () =>
-                    downloadFile(_lastBytes!, _lastGenerated!, 'application/pdf'),
-              ),
-            ],
+
 
             const SizedBox(height: 40),
           ],
@@ -346,11 +337,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
       await downloadFile(bytes, filename, 'application/pdf');
 
       if (mounted) {
-        setState(() {
-          _isGenerating = false;
-          _lastGenerated = filename;
-          _lastBytes = bytes;
-        });
+        setState(() => _isGenerating = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Descargando $filename'),
@@ -755,53 +742,3 @@ class _ReportPreview extends StatelessWidget {
   }
 }
 
-class _LastGeneratedCard extends StatelessWidget {
-  final String filename;
-  final VoidCallback onDownload;
-
-  const _LastGeneratedCard(
-      {required this.filename, required this.onDownload});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: EcoRutaColors.secondaryContainer.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: EcoRutaColors.secondary.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle_rounded,
-              color: EcoRutaColors.secondary, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Último reporte generado',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: EcoRutaColors.onSurfaceVariant)),
-                Text(
-                  filename,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: EcoRutaColors.secondary,
-                      fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          TextButton.icon(
-            onPressed: onDownload,
-            icon: const Icon(Icons.download_rounded, size: 16),
-            label: const Text('Descargar'),
-          ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.3, end: 0);
-  }
-}
