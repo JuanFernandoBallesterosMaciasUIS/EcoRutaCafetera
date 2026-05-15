@@ -1,6 +1,7 @@
 {
+  "buildCommand": "bash vercel-build.sh",
   "outputDirectory": "build/web",
-  "buildCommand": null,
+  "installCommand": "echo 'no npm install needed'",
   "framework": null,
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
