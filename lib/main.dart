@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'services/providers.dart';
 import 'theme/app_theme.dart';
 import 'utils/app_router.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Carga prefs ANTES de runApp → AuthNotifier restaura sesión síncronamente
+  final prefs = await SharedPreferences.getInstance();
   runApp(
-    // ProviderScope wraps the whole app for Riverpod state management
-    const ProviderScope(
-      child: EcoRutaCafeteraApp(),
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const EcoRutaCafeteraApp(),
     ),
   );
 }

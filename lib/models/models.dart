@@ -65,6 +65,7 @@ enum SyncStatus {
 class AppUser {
   final int id;
   final String nombre;
+  final String username;
   final String email;
   final UserRole rol;
   final int? municipioAsignado;
@@ -72,7 +73,8 @@ class AppUser {
   const AppUser({
     required this.id,
     required this.nombre,
-    required this.email,
+    this.username = '',
+    this.email = '',
     required this.rol,
     this.municipioAsignado,
   });
@@ -81,7 +83,8 @@ class AppUser {
     return AppUser(
       id: json['id'] as int,
       nombre: json['nombre'] as String,
-      email: json['email'] as String,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       rol: UserRole.values.firstWhere(
         (r) => r.name == json['rol'],
         orElse: () => UserRole.consultor,
@@ -93,6 +96,7 @@ class AppUser {
   Map<String, dynamic> toJson() => {
         'id': id,
         'nombre': nombre,
+        'username': username,
         'email': email,
         'rol': rol.name,
         'municipioAsignado': municipioAsignado,
@@ -105,21 +109,61 @@ class Municipio {
   final String nombre;
   final String departamento;
   final String codigoDane;
+  final double latCenter;
+  final double lngCenter;
 
   const Municipio({
     required this.id,
     required this.nombre,
     required this.departamento,
     required this.codigoDane,
+    required this.latCenter,
+    required this.lngCenter,
   });
 
   static const List<Municipio> municipiosPiloto = [
-    Municipio(id: 1, nombre: 'Vélez', departamento: 'Santander', codigoDane: '68861'),
-    Municipio(id: 2, nombre: 'Barbosa', departamento: 'Santander', codigoDane: '68081'),
-    Municipio(id: 3, nombre: 'Landázuri', departamento: 'Santander', codigoDane: '68397'),
-    Municipio(id: 4, nombre: 'El Carmen de Chucurí', departamento: 'Santander', codigoDane: '68147'),
-    Municipio(id: 5, nombre: 'San Vicente de Chucurí', departamento: 'Santander', codigoDane: '68770'),
-    Municipio(id: 6, nombre: 'Betulia', departamento: 'Santander', codigoDane: '68092'),
+    Municipio(id: 1, nombre: 'Vélez',                  departamento: 'Santander', codigoDane: '68861', latCenter: 6.0113,  lngCenter: -73.6775),
+    Municipio(id: 2, nombre: 'Barbosa',                 departamento: 'Santander', codigoDane: '68081', latCenter: 6.1833,  lngCenter: -73.6167),
+    Municipio(id: 3, nombre: 'Landázuri',               departamento: 'Santander', codigoDane: '68397', latCenter: 6.2278,  lngCenter: -73.8136),
+    Municipio(id: 4, nombre: 'El Carmen de Chucurí',    departamento: 'Santander', codigoDane: '68147', latCenter: 6.7017,  lngCenter: -73.5167),
+    Municipio(id: 5, nombre: 'San Vicente de Chucurí',  departamento: 'Santander', codigoDane: '68770', latCenter: 6.8931,  lngCenter: -73.3703),
+    Municipio(id: 6, nombre: 'Betulia',                 departamento: 'Santander', codigoDane: '68092', latCenter: 6.9833,  lngCenter: -73.7000),
+  ];
+}
+
+/// Rutas de visita predefinidas
+class RutaVisita {
+  final int id;
+  final String nombre;
+  final String descripcion;
+  final List<int> fincaIds;
+
+  const RutaVisita({
+    required this.id,
+    required this.nombre,
+    required this.descripcion,
+    required this.fincaIds,
+  });
+
+  static const List<RutaVisita> rutasPredefinidas = [
+    RutaVisita(
+      id: 1,
+      nombre: 'Ruta Barbosa Norte',
+      descripcion: 'La Esperanza → El Paraíso',
+      fincaIds: [1, 2],
+    ),
+    RutaVisita(
+      id: 2,
+      nombre: 'Ruta Vélez - El Carmen',
+      descripcion: 'San Carlos → Los Arrayanes',
+      fincaIds: [3, 4],
+    ),
+    RutaVisita(
+      id: 3,
+      nombre: 'Ruta Completa',
+      descripcion: 'Todas las fincas registradas',
+      fincaIds: [1, 2, 3, 4],
+    ),
   ];
 }
 
@@ -155,7 +199,7 @@ class Finca {
       Municipio.municipiosPiloto
           .firstWhere((m) => m.id == municipioId,
               orElse: () => const Municipio(
-                  id: 0, nombre: 'Desconocido', departamento: '', codigoDane: ''))
+                  id: 0, nombre: 'Desconocido', departamento: '', codigoDane: '', latCenter: 6.1900, lngCenter: -73.6100))
           .nombre;
 
   Finca copyWith({
@@ -316,7 +360,7 @@ class UsuarioSistema {
       : Municipio.municipiosPiloto
           .firstWhere((m) => m.id == municipioAsignado,
               orElse: () => const Municipio(
-                  id: 0, nombre: 'Desconocido', departamento: '', codigoDane: ''))
+                  id: 0, nombre: 'Desconocido', departamento: '', codigoDane: '', latCenter: 6.1900, lngCenter: -73.6100))
           .nombre;
 }
 
@@ -324,6 +368,7 @@ class UsuarioSistema {
 const AppUser demoUser = AppUser(
   id: 1,
   nombre: 'Iván Martínez',
+  username: 'ivan',
   email: 'ivan.martinez@gobsantander.gov.co',
   rol: UserRole.tecnicoCampo,
   municipioAsignado: 2,
@@ -332,6 +377,7 @@ const AppUser demoUser = AppUser(
 const AppUser demoAdmin = AppUser(
   id: 2,
   nombre: 'Laura Pedraza',
+  username: 'laura',
   email: 'laura.pedraza@gobsantander.gov.co',
   rol: UserRole.administrador,
 );
@@ -339,6 +385,7 @@ const AppUser demoAdmin = AppUser(
 const AppUser demoConsultor = AppUser(
   id: 3,
   nombre: 'Jorge Cárdenas',
+  username: 'jorge',
   email: 'jorge.cardenas@fedecafe.com.co',
   rol: UserRole.consultor,
   municipioAsignado: 4,

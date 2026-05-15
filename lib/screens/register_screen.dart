@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/providers.dart';
-import '../widgets/widgets.dart';
+
+const _kCoffeeBgUrl =
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuAIA-iIqP6BkHzz5FqBP4MS1RE2K6CkHFWLfA23AyQk8a4LZaRwl6WMhnL9HXLgTlG3OhUWTxIdqQXWpVODXm7Vv35P3nic7t5QXP6eKLIuGwn02QaCTfxL-vLhFLCbWSaPtoMAcApKZEwy92Hmex3Z1SOOafqdjjPQcE7irSK1jRY53c18PDAZqI5Z-qCs0W9LhUu7l5ZRtnTQLe3Vi-nQSyW7e5zdhWzRq6me9QegWH8A6wtURmFybA-sdraKCyAuCZsmH1GLrQg';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -17,7 +19,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   UserRole _selectedRole = UserRole.tecnicoCampo;
@@ -30,7 +32,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -51,10 +53,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1000));
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+    final success = await ref.read(authProvider.notifier).register(
+          username: _usernameController.text.trim(),
+          password: _passwordController.text,
+          nombre: _nameController.text.trim(),
+          rol: _selectedRole,
+          municipioAsignado: _selectedMunicipio?.id,
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('¡Cuenta creada exitosamente!'),
@@ -64,157 +75,97 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
       );
       context.go('/login');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('El nombre de usuario ya está en uso'),
+          backgroundColor: EcoRutaColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isOnline = ref.watch(connectivityProvider);
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 700;
-
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
-        ),
-        title: isWide ? null : const Text('Registro'),
-        backgroundColor: EcoRutaColors.surface,
-        elevation: 0,
-      ),
-      body: isWide
-          ? _buildWideLayout(isOnline)
-          : _buildMobileLayout(),
-    );
-  }
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background image — same as login/splash
+          Image.network(
+            _kCoffeeBgUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              color: EcoRutaColors.primaryContainer,
+            ),
+          ),
 
-  Widget _buildMobileLayout() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Text(
-              'Crear Cuenta',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: EcoRutaColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ).animate().fadeIn(),
-            const SizedBox(height: 6),
-            Text(
-              'Completa los datos para registrarte',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: EcoRutaColors.onSurfaceVariant,
-                  ),
-            ).animate().fadeIn(delay: 100.ms),
-            const SizedBox(height: 24),
-            _buildFormCard(),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWideLayout(bool isOnline) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 5,
-          child: Container(
+          // Gradient overlay
+          Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF00450D), Color(0xFF2E7D32)],
-              ),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const EcoRutaLogo(size: 80),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Únete a EcoRuta',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 48),
-                    child: Text(
-                      'Crea tu cuenta para acceder a la plataforma de censo cafetero.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withOpacity(0.75),
-                            height: 1.6,
-                          ),
-                    ),
-                  ),
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x3300450D),
+                  Color(0xF2FFFFFF),
+                  Color(0xFFF9F9F9),
                 ],
+                stops: [0.0, 0.70, 1.0],
               ),
             ),
           ),
-        ),
-        Expanded(
-          flex: 4,
-          child: Container(
-            color: EcoRutaColors.background,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(48),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Crear Cuenta',
-                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                              color: EcoRutaColors.primary,
+
+          // Content
+          Column(
+            children: [
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  color: EcoRutaColors.onSurfaceVariant,
+                  onPressed: () => context.go('/'),
+                ),
+                title: const Text(
+                  'Registro',
+                  style: TextStyle(color: EcoRutaColors.onSurface),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: EcoRutaColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
+                          ],
+                        ),
+                        child: _buildForm(),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Completa el formulario para registrarte.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: EcoRutaColors.onSurfaceVariant,
-                            ),
-                      ),
-                      const SizedBox(height: 32),
-                      _buildForm(),
-                    ],
+                    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.08),
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: EcoRutaColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: EcoRutaColors.primary.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            ],
           ),
         ],
       ),
-      child: _buildForm(),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
+    );
   }
 
   Widget _buildForm() {
@@ -223,6 +174,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Crear Cuenta',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: EcoRutaColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+          ).animate().fadeIn(),
+          const SizedBox(height: 4),
+          Text(
+            'Completa los datos para registrarte',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: EcoRutaColors.onSurfaceVariant,
+                ),
+          ).animate().fadeIn(delay: 60.ms),
+
+          const SizedBox(height: 20),
+
           _FormLabel('Nombre completo'),
           const SizedBox(height: 6),
           TextFormField(
@@ -236,26 +204,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             validator: (v) => (v?.trim().isEmpty ?? true) ? 'Ingresa tu nombre' : null,
           ).animate().fadeIn(delay: 50.ms),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          _FormLabel('Correo electrónico'),
+          _FormLabel('Nombre de usuario'),
           const SizedBox(height: 6),
           TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            controller: _usernameController,
             textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
-              hintText: 'ejemplo@correo.com',
-              prefixIcon: Icon(Icons.email_outlined),
+              hintText: 'Ej: ivan.martinez',
+              prefixIcon: Icon(Icons.account_circle_outlined),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
-              if (!v.contains('@')) return 'Correo inválido';
+              if (v == null || v.trim().isEmpty) return 'Ingresa un nombre de usuario';
+              if (v.trim().length < 3) return 'Mínimo 3 caracteres';
               return null;
             },
           ).animate().fadeIn(delay: 100.ms),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           _FormLabel('Rol en el sistema'),
           const SizedBox(height: 6),
@@ -273,7 +240,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             onChanged: (v) => setState(() => _selectedRole = v!),
           ).animate().fadeIn(delay: 150.ms),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           _FormLabel('Municipio asignado'),
           const SizedBox(height: 6),
@@ -290,7 +257,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             validator: (v) => v == null ? 'Selecciona un municipio' : null,
           ).animate().fadeIn(delay: 200.ms),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           _FormLabel('Contraseña'),
           const SizedBox(height: 6),
@@ -316,7 +283,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             },
           ).animate().fadeIn(delay: 250.ms),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           _FormLabel('Confirmar contraseña'),
           const SizedBox(height: 6),
@@ -342,9 +309,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             },
           ).animate().fadeIn(delay: 300.ms),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Terms checkbox
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -383,11 +349,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ).animate().fadeIn(delay: 350.ms),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
 
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: 52,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handleRegister,
               child: _isLoading
@@ -400,7 +366,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           Center(
             child: TextButton(
@@ -408,12 +374,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: RichText(
                 text: TextSpan(
                   style: Theme.of(context).textTheme.bodyMedium,
-                  children: [
-                    const TextSpan(
+                  children: const [
+                    TextSpan(
                       text: '¿Ya tienes cuenta? ',
                       style: TextStyle(color: EcoRutaColors.onSurfaceVariant),
                     ),
-                    const TextSpan(
+                    TextSpan(
                       text: 'Iniciar Sesión',
                       style: TextStyle(
                         color: EcoRutaColors.primary,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
+import '../services/location_service.dart';
 import '../services/providers.dart';
 
 class NuevaFincaScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,8 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
   bool _capturedGps = false;
   bool _isLoading = false;
   bool _consentAccepted = false;
+  double? _capturedLat;
+  double? _capturedLng;
 
   static const List<String> _variedades = [
     'Castillo',
@@ -45,17 +48,54 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
     super.dispose();
   }
 
-  Future<void> _simulateCaptureGps() async {
+  Future<void> _captureGps() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+
+    // Intenta GPS real
+    final loc = await LocationService.getCurrentLocation();
+
+    double lat;
+    double lng;
+    bool usedGps;
+
+    if (loc != null) {
+      lat = loc.latitude;
+      lng = loc.longitude;
+      usedGps = true;
+    } else {
+      // Fallback: centro del municipio seleccionado
+      final mun = _selectedMunicipio;
+      if (mun == null) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Selecciona un municipio primero'),
+              backgroundColor: EcoRutaColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+        return;
+      }
+      lat = mun.latCenter;
+      lng = mun.lngCenter;
+      usedGps = false;
+    }
+
     if (mounted) {
       setState(() {
         _capturedGps = true;
+        _capturedLat = lat;
+        _capturedLng = lng;
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('GPS capturado: 6.1833°N, 73.6167°O'),
+          content: Text(usedGps
+              ? 'GPS capturado: ${lat.toStringAsFixed(4)}°N, ${lng.abs().toStringAsFixed(4)}°O'
+              : 'Usando centro de ${_selectedMunicipio!.nombre}'),
           backgroundColor: EcoRutaColors.secondary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -84,8 +124,8 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
       vereda: _veredaController.text.trim(),
       hectareas: double.tryParse(_hectareasController.text) ?? 0,
       variedadCafe: _selectedVariedad,
-      latitud: _capturedGps ? 6.1833 : null,
-      longitud: _capturedGps ? -73.6167 : null,
+      latitud: _capturedGps ? _capturedLat : null,
+      longitud: _capturedGps ? _capturedLng : null,
       municipioId: _selectedMunicipio?.id ?? 2,
     );
 
@@ -400,7 +440,7 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
                         ),
                         Text(
                           _capturedGps
-                              ? '6.1833°N, 73.6167°O • Precisión: 2.5m'
+                              ? '${_capturedLat!.toStringAsFixed(4)}°N, ${_capturedLng!.abs().toStringAsFixed(4)}°O'
                               : 'GPS + GLONASS • sub-métrico',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: EcoRutaColors.onSurfaceVariant,
@@ -411,7 +451,7 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
                   ),
                   if (!_capturedGps)
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _simulateCaptureGps,
+                      onPressed: _isLoading ? null : _captureGps,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(80, 40),
                         backgroundColor: EcoRutaColors.primary,

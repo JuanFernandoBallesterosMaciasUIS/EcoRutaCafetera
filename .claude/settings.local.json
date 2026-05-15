@@ -7,7 +7,11 @@
       "Bash(flutter run *)",
       "Bash(python -c \"from PIL import Image; print\\('PIL ok'\\)\")",
       "Bash(python3)",
-      "Bash(flutter pub *)"
+      "Bash(flutter pub *)",
+      "Bash(xargs grep -l \"class.*Provider\\\\|notifier\\\\|state\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\jball\\\\OneDrive\\\\Documentos\\\\UIS\\\\octavo semestre\\\\software 2\\\\taller corte 3\\\\ecoruta_cafetera\" -Recurse -Filter \"*.dart\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(flutter create *)"
     ]
   }
 }

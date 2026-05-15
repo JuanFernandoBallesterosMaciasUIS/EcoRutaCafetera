@@ -33,6 +33,12 @@ dependencies:
   # Location
   geolocator: ^13.0.2
 
+  # HTTP
+  http: ^1.2.0
+
+  # Session persistence
+  shared_preferences: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

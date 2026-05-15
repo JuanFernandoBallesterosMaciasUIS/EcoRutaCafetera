@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 
 // ─── Connectivity State ────────────────────────────────────────────────────
@@ -17,29 +20,135 @@ final connectivityProvider =
 
 // ─── Auth State ───────────────────────────────────────────────────────────
 
+class _RegisteredUser {
+  final AppUser user;
+  final String password;
+  const _RegisteredUser(this.user, this.password);
+}
+
+// Provider para SharedPreferences — se override en main() con instancia ya cargada
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('Override in main()');
+});
+
 class AuthNotifier extends StateNotifier<AppUser?> {
-  AuthNotifier() : super(null);
+  AuthNotifier(this._prefs) : super(null) {
+    _restoreSessionSync();
+  }
+
+  static const _keyUser = 'session_user';
+  static const _keyTimestamp = 'session_ts';
+  static const _keyRegistered = 'registered_users';
+  static const _sessionMs = 30 * 60 * 1000;
+
+  final SharedPreferences _prefs;
+  final Map<String, _RegisteredUser> _registeredUsers = {};
+
+  // Síncrono: prefs ya está cargado antes de runApp()
+  void _restoreSessionSync() {
+    final regJson = _prefs.getString(_keyRegistered);
+    if (regJson != null) {
+      try {
+        final regMap = jsonDecode(regJson) as Map<String, dynamic>;
+        for (final entry in regMap.entries) {
+          final data = entry.value as Map<String, dynamic>;
+          final u = AppUser.fromJson(data['user'] as Map<String, dynamic>);
+          _registeredUsers[entry.key] = _RegisteredUser(u, data['password'] as String);
+        }
+      } catch (_) {}
+    }
+
+    final ts = _prefs.getInt(_keyTimestamp) ?? 0;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - ts;
+    if (elapsed >= _sessionMs) {
+      _prefs.remove(_keyUser);
+      _prefs.remove(_keyTimestamp);
+      return;
+    }
+    final userJson = _prefs.getString(_keyUser);
+    if (userJson == null) return;
+    try {
+      state = AppUser.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
+    } catch (_) {}
+  }
+
+  void _saveSession(AppUser user) {
+    _prefs.setString(_keyUser, jsonEncode(user.toJson()));
+    _prefs.setInt(_keyTimestamp, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  void _saveRegisteredUsers() {
+    final map = <String, dynamic>{};
+    for (final entry in _registeredUsers.entries) {
+      map[entry.key] = {
+        'user': entry.value.user.toJson(),
+        'password': entry.value.password,
+      };
+    }
+    _prefs.setString(_keyRegistered, jsonEncode(map));
+  }
+
+  Future<bool> register({
+    required String username,
+    required String password,
+    required String nombre,
+    required UserRole rol,
+    int? municipioAsignado,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    final key = username.toLowerCase().trim();
+    if (key.isEmpty || password.length < 8) return false;
+    if (_registeredUsers.containsKey(key)) return false;
+    final user = AppUser(
+      id: 1000 + _registeredUsers.length,
+      nombre: nombre,
+      username: key,
+      rol: rol,
+      municipioAsignado: municipioAsignado,
+    );
+    _registeredUsers[key] = _RegisteredUser(user, password);
+    _saveRegisteredUsers();
+    return true;
+  }
 
   Future<bool> login(String username, String password) async {
     await Future.delayed(const Duration(milliseconds: 800));
     if (username.isEmpty || password.length < 4) return false;
-    // Role-based demo login
-    final u = username.toLowerCase().trim();
-    if (u == 'admin' || u == 'laura') {
-      state = demoAdmin;
-    } else if (u == 'consultor' || u == 'jorge') {
-      state = demoConsultor;
-    } else {
-      state = demoUser;
+    final key = username.toLowerCase().trim();
+    final registered = _registeredUsers[key];
+    if (registered != null) {
+      if (registered.password != password) return false;
+      state = registered.user;
+      _saveSession(registered.user);
+      return true;
     }
+    // Usuarios demo: usuario=primer nombre, contraseña=1234
+    const demoPassword = '1234';
+    if (password != demoPassword) return false;
+    AppUser? user;
+    if (key == 'laura') {
+      user = demoAdmin;
+    } else if (key == 'jorge') {
+      user = demoConsultor;
+    } else if (key == 'ivan') {
+      user = demoUser;
+    } else {
+      return false;
+    }
+    state = user;
+    _saveSession(user);
     return true;
   }
 
-  void logout() => state = null;
+  void logout() {
+    _prefs.remove(_keyUser);
+    _prefs.remove(_keyTimestamp);
+    state = null;
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AppUser?>((ref) {
-  return AuthNotifier();
+  return AuthNotifier(ref.read(sharedPreferencesProvider));
 });
 
 // ─── Fincas State ────────────────────────────────────────────────────────

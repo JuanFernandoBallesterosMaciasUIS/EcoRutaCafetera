@@ -365,7 +365,9 @@ class _HomeTab extends ConsumerWidget {
               id: 0,
               nombre: 'Sin asignar',
               departamento: '',
-              codigoDane: ''))
+              codigoDane: '',
+              latCenter: 6.1900,
+              lngCenter: -73.6100))
       .nombre;
 
   @override
@@ -524,11 +526,18 @@ class _HomeTab extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            ...fincas.take(3).map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: FincaCard(
-                      finca: f, onTap: () => context.go('/finca/${f.id}')),
-                )),
+            ...([...fincas]
+                  ..sort((a, b) {
+                    final ta = a.fechaRegistro?.millisecondsSinceEpoch ?? 0;
+                    final tb = b.fechaRegistro?.millisecondsSinceEpoch ?? 0;
+                    return tb.compareTo(ta);
+                  }))
+                .take(3)
+                .map((f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: FincaCard(
+                          finca: f, onTap: () => context.go('/finca/${f.id}')),
+                    )),
 
             const SizedBox(height: 32),
           ],
@@ -797,7 +806,7 @@ class _MoreTab extends ConsumerWidget {
           _SettingsTile(
             icon: Icons.person_outline_rounded,
             title: 'Perfil',
-            subtitle: user.email,
+            subtitle: user.username.isNotEmpty ? '@${user.username}' : user.nombre,
           ),
           _SettingsTile(
             icon: Icons.security_rounded,

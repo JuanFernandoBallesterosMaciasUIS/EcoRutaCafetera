@@ -146,9 +146,12 @@ class UsuariosScreen extends ConsumerWidget {
 
   void _showAddUserDialog(BuildContext context, WidgetRef ref) {
     final nombreCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
+    final usernameCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
     UserRole selectedRole = UserRole.tecnicoCampo;
     int? selectedMunicipio;
+    bool obscurePassword = true;
+    String? errorMsg;
 
     showDialog(
       context: context,
@@ -165,6 +168,14 @@ class UsuariosScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (errorMsg != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      errorMsg!,
+                      style: const TextStyle(color: EcoRutaColors.error, fontSize: 13),
+                    ),
+                  ),
                 TextField(
                   controller: nombreCtrl,
                   decoration: const InputDecoration(
@@ -174,12 +185,28 @@ class UsuariosScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: emailCtrl,
+                  controller: usernameCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email_rounded),
+                    labelText: 'Usuario (para iniciar sesión)',
+                    prefixIcon: Icon(Icons.account_circle_rounded),
                   ),
-                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordCtrl,
+                  obscureText: obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    prefixIcon: const Icon(Icons.lock_rounded),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined),
+                      onPressed: () =>
+                          setDialogState(() => obscurePassword = !obscurePassword),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<UserRole>(
@@ -192,8 +219,7 @@ class UsuariosScreen extends ConsumerWidget {
                       .map((r) => DropdownMenuItem(
                           value: r, child: Text(r.displayName)))
                       .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedRole = v!),
+                  onChanged: (v) => setDialogState(() => selectedRole = v!),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int?>(
@@ -208,8 +234,7 @@ class UsuariosScreen extends ConsumerWidget {
                     ...Municipio.municipiosPiloto.map((m) =>
                         DropdownMenuItem(value: m.id, child: Text(m.nombre))),
                   ],
-                  onChanged: (v) =>
-                      setDialogState(() => selectedMunicipio = v),
+                  onChanged: (v) => setDialogState(() => selectedMunicipio = v),
                 ),
               ],
             ),
@@ -220,21 +245,41 @@ class UsuariosScreen extends ConsumerWidget {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
-                if (nombreCtrl.text.isNotEmpty && emailCtrl.text.isNotEmpty) {
-                  ref.read(usuariosProvider.notifier).addUsuario(
-                        UsuarioSistema(
-                          id: 0,
-                          nombre: nombreCtrl.text.trim(),
-                          email: emailCtrl.text.trim(),
-                          rol: selectedRole,
-                          municipioAsignado: selectedMunicipio,
-                        ),
-                      );
-                  Navigator.pop(ctx);
+              onPressed: () async {
+                final nombre = nombreCtrl.text.trim();
+                final username = usernameCtrl.text.trim();
+                final password = passwordCtrl.text;
+                if (nombre.isEmpty || username.isEmpty || password.length < 4) {
+                  setDialogState(() => errorMsg =
+                      'Completa todos los campos. Contraseña mínimo 4 caracteres.');
+                  return;
+                }
+                final ok = await ref.read(authProvider.notifier).register(
+                      username: username,
+                      password: password,
+                      nombre: nombre,
+                      rol: selectedRole,
+                      municipioAsignado: selectedMunicipio,
+                    );
+                if (!ok) {
+                  setDialogState(
+                      () => errorMsg = 'El usuario "$username" ya existe.');
+                  return;
+                }
+                ref.read(usuariosProvider.notifier).addUsuario(
+                      UsuarioSistema(
+                        id: 0,
+                        nombre: nombre,
+                        email: '',
+                        rol: selectedRole,
+                        municipioAsignado: selectedMunicipio,
+                      ),
+                    );
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Usuario ${nombreCtrl.text} creado.'),
+                      content: Text('Usuario "$username" creado correctamente.'),
                       backgroundColor: EcoRutaColors.secondary,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(

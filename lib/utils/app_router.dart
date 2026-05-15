@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
-import '../screens/register_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/nueva_finca_screen.dart';
 import '../screens/finca_detail_screen.dart';
@@ -22,7 +21,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final user = ref.read(authProvider);
       final isAuth = user != null;
       final isOnAuthPage = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register' ||
           state.matchedLocation == '/';
 
       if (!isAuth && !isOnAuthPage) return '/';
@@ -39,11 +37,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (_, __) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/register',
-        name: 'register',
-        builder: (_, __) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/home',

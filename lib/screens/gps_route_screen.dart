@@ -8,6 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../models/models.dart';
+import '../services/location_service.dart';
+import '../services/providers.dart';
+import '../services/routing_service.dart';
 import '../theme/app_theme.dart';
 
 // ─── Estado de tracking GPS ───────────────────────────────────────────────────
@@ -20,6 +24,11 @@ class GpsRouteData {
   final int gpsPoints;
   final double distanceMeters;
   final List<LatLng> routePoints;
+  final RutaVisita? selectedRoute;
+  final List<LatLng> plannedPoints;
+  final List<LatLng> fincaWaypoints;
+  final double plannedDistanceMeters;   // distancia total ruta planificada (OSRM)
+  final LatLng? userLocation;
 
   const GpsRouteData({
     this.status = GpsTrackingStatus.idle,
@@ -27,6 +36,11 @@ class GpsRouteData {
     this.gpsPoints = 0,
     this.distanceMeters = 0.0,
     this.routePoints = const [],
+    this.selectedRoute,
+    this.plannedPoints = const [],
+    this.fincaWaypoints = const [],
+    this.plannedDistanceMeters = 0.0,
+    this.userLocation,
   });
 
   GpsRouteData copyWith({
@@ -35,6 +49,12 @@ class GpsRouteData {
     int? gpsPoints,
     double? distanceMeters,
     List<LatLng>? routePoints,
+    RutaVisita? selectedRoute,
+    List<LatLng>? plannedPoints,
+    List<LatLng>? fincaWaypoints,
+    double? plannedDistanceMeters,
+    LatLng? userLocation,
+    bool clearRoute = false,
   }) =>
       GpsRouteData(
         status: status ?? this.status,
@@ -42,6 +62,11 @@ class GpsRouteData {
         gpsPoints: gpsPoints ?? this.gpsPoints,
         distanceMeters: distanceMeters ?? this.distanceMeters,
         routePoints: routePoints ?? this.routePoints,
+        selectedRoute: clearRoute ? null : (selectedRoute ?? this.selectedRoute),
+        plannedPoints: clearRoute ? const [] : (plannedPoints ?? this.plannedPoints),
+        fincaWaypoints: clearRoute ? const [] : (fincaWaypoints ?? this.fincaWaypoints),
+        plannedDistanceMeters: clearRoute ? 0.0 : (plannedDistanceMeters ?? this.plannedDistanceMeters),
+        userLocation: clearRoute ? null : (userLocation ?? this.userLocation),
       );
 
   String get formattedTime {
@@ -53,45 +78,49 @@ class GpsRouteData {
         '${s.toString().padLeft(2, '0')}';
   }
 
+  // Cuando idle muestra distancia planificada; cuando graba muestra recorrida
   String get formattedDistance {
-    if (distanceMeters >= 1000) {
-      return '${(distanceMeters / 1000).toStringAsFixed(2)} km';
-    }
-    return '${distanceMeters.toStringAsFixed(0)} m';
+    final d = status == GpsTrackingStatus.idle ? plannedDistanceMeters : distanceMeters;
+    if (d >= 1000) return '${(d / 1000).toStringAsFixed(2)} km';
+    return '${d.toStringAsFixed(0)} m';
   }
 }
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
 class GpsRouteNotifier extends StateNotifier<GpsRouteData> {
-  GpsRouteNotifier() : super(const GpsRouteData()) {
-    _initDemoRoute();
-  }
+  GpsRouteNotifier() : super(const GpsRouteData());
 
   Timer? _timer;
-  final _rng = math.Random(42);
+  final _rng = math.Random();
 
-  // Ruta demo — coordenadas reales zona cafetera Barbosa/Vélez, Santander
-  static const _demoRoute = <LatLng>[
-    LatLng(6.1780, -73.6200),
-    LatLng(6.1820, -73.6160),
-    LatLng(6.1860, -73.6120),
-    LatLng(6.1900, -73.6090),
-    LatLng(6.1940, -73.6050),
-    LatLng(6.1970, -73.6010),
-    LatLng(6.2010, -73.5970),
-    LatLng(6.2050, -73.5940),
-  ];
-
-  void _initDemoRoute() {
-    state = const GpsRouteData(
-      routePoints: _demoRoute,
-      distanceMeters: 235.0,
-      gpsPoints: 0,
+  void selectRoute(
+    RutaVisita route,
+    List<LatLng> plannedPoints,
+    List<LatLng> fincaWaypoints,
+    LatLng userLocation,
+    double plannedDistanceMeters,
+  ) {
+    _timer?.cancel();
+    _timer = null;
+    state = GpsRouteData(
+      selectedRoute: route,
+      plannedPoints: plannedPoints,
+      fincaWaypoints: fincaWaypoints,
+      plannedDistanceMeters: plannedDistanceMeters,
+      userLocation: userLocation,
+      routePoints: [userLocation],
     );
   }
 
+  void clearRoute() {
+    _timer?.cancel();
+    _timer = null;
+    state = const GpsRouteData();
+  }
+
   void start() {
+    if (state.selectedRoute == null) return;
     state = state.copyWith(status: GpsTrackingStatus.recording);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
@@ -105,20 +134,42 @@ class GpsRouteNotifier extends StateNotifier<GpsRouteData> {
   void stop() {
     _timer?.cancel();
     _timer = null;
-    _initDemoRoute();
+    state = GpsRouteData(
+      selectedRoute: state.selectedRoute,
+      plannedPoints: state.plannedPoints,
+      fincaWaypoints: state.fincaWaypoints,
+      userLocation: state.userLocation,
+      routePoints: state.userLocation != null ? [state.userLocation!] : const [],
+    );
   }
 
   void _tick() {
     final elapsed = state.elapsedSeconds + 1;
-    final distance = state.distanceMeters + 0.55 + _rng.nextDouble() * 0.5;
-    final points = elapsed % 3 == 0 ? state.gpsPoints + 1 : state.gpsPoints;
+    final distance = state.distanceMeters + 3.5 + _rng.nextDouble() * 2;
+    final points = elapsed % 5 == 0 ? state.gpsPoints + 1 : state.gpsPoints;
 
+    // Añade punto GPS cada 8 segundos moviéndose hacia siguiente waypoint planificado
     List<LatLng> route = state.routePoints;
-    if (elapsed % 5 == 0 && route.isNotEmpty) {
-      final last = route.last;
-      final dlat = (_rng.nextDouble() - 0.3) * 0.0005;
-      final dlng = (_rng.nextDouble() - 0.3) * 0.0005;
-      route = [...route, LatLng(last.latitude + dlat, last.longitude + dlng)];
+    if (elapsed % 8 == 0 && route.isNotEmpty && state.plannedPoints.length > 1) {
+      final current = route.last;
+      // Busca siguiente waypoint planificado no alcanzado
+      LatLng? target;
+      for (final p in state.plannedPoints) {
+        final dlat = (p.latitude - current.latitude).abs();
+        final dlng = (p.longitude - current.longitude).abs();
+        if (dlat > 0.001 || dlng > 0.001) {
+          target = p;
+          break;
+        }
+      }
+      if (target != null) {
+        // Avanza 10% hacia el target + pequeño ruido
+        final lat = current.latitude + (target.latitude - current.latitude) * 0.10
+            + (_rng.nextDouble() - 0.5) * 0.0002;
+        final lng = current.longitude + (target.longitude - current.longitude) * 0.10
+            + (_rng.nextDouble() - 0.5) * 0.0002;
+        route = [...route, LatLng(lat, lng)];
+      }
     }
 
     state = state.copyWith(
@@ -141,7 +192,7 @@ final gpsRouteProvider =
   (_) => GpsRouteNotifier(),
 );
 
-// ─── Tab principal (embebible en HomeScreen) ──────────────────────────────────
+// ─── Tab principal ────────────────────────────────────────────────────────────
 
 class GpsRouteTab extends ConsumerStatefulWidget {
   const GpsRouteTab({super.key});
@@ -152,9 +203,10 @@ class GpsRouteTab extends ConsumerStatefulWidget {
 
 class _GpsRouteTabState extends ConsumerState<GpsRouteTab> {
   final _mapController = MapController();
+  bool _loadingRoute = false;
 
   static const _defaultCenter = LatLng(6.1900, -73.6050);
-  static const _defaultZoom = 14.0;
+  static const _defaultZoom = 13.0;
 
   @override
   void dispose() {
@@ -162,19 +214,102 @@ class _GpsRouteTabState extends ConsumerState<GpsRouteTab> {
     super.dispose();
   }
 
-  void _centerOnRoute(List<LatLng> points) {
+  void _fitRoute(GpsRouteData data) {
+    // Usa solo plannedPoints para el encuadre (ruta completa visible)
+    final points = data.plannedPoints.isNotEmpty
+        ? data.plannedPoints
+        : data.routePoints;
     if (points.isEmpty) return;
-    _mapController.move(points.last, _defaultZoom);
+    if (points.length == 1) {
+      _mapController.move(points.first, 15.0);
+      return;
+    }
+    _mapController.fitCamera(
+      CameraFit.coordinates(
+        coordinates: points,
+        padding: const EdgeInsets.fromLTRB(40, 80, 40, 200),
+      ),
+    );
+  }
+
+  void _centerOnUser(GpsRouteData data) {
+    final userLoc = data.userLocation;
+    if (userLoc != null) {
+      _mapController.move(userLoc, 15.5);
+    }
+  }
+
+  void _centerOnContent(GpsRouteData data) => _fitRoute(data);
+
+  Future<void> _showRoutePicker() async {
+    final fincas = ref.read(fincasProvider);
+    final notifier = ref.read(gpsRouteProvider.notifier);
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _RoutePickerSheet(
+        fincas: fincas,
+        onRouteSelected: (route) async {
+          Navigator.of(context).pop();
+          setState(() => _loadingRoute = true);
+
+          // Obtiene ubicación real del usuario
+          LatLng? userLoc = await LocationService.getCurrentLocation();
+
+          // Fallback si GPS no disponible: centro de la región cafetera
+          userLoc ??= const LatLng(6.1900, -73.6100);
+
+          // Waypoints: user → finca1 → finca2 → ...
+          final waypoints = <LatLng>[userLoc];
+          for (final fincaId in route.fincaIds) {
+            final finca = fincas.firstWhere(
+              (f) => f.id == fincaId,
+              orElse: () => fincas.first,
+            );
+            if (finca.latitud != null && finca.longitud != null) {
+              waypoints.add(LatLng(finca.latitud!, finca.longitud!));
+            }
+          }
+
+          // fincaWaypoints = solo posiciones fincas (sin user), para markers
+          final fincaWaypoints = waypoints.skip(1).toList();
+
+          // Intenta obtener ruta real por carretera vía OSRM
+          final result = await RoutingService.getRoute(waypoints);
+
+          // Fallback haversine si OSRM falla
+          double fallbackDist = 0;
+          for (int i = 0; i < waypoints.length - 1; i++) {
+            fallbackDist += RoutingService.haversineMeters(waypoints[i], waypoints[i + 1]);
+          }
+
+          final plannedPoints = result?.points ?? waypoints;
+          final plannedDist = result?.distanceMeters ?? fallbackDist;
+
+          notifier.selectRoute(route, plannedPoints, fincaWaypoints, userLoc, plannedDist);
+
+          if (mounted) {
+            setState(() => _loadingRoute = false);
+            // Centra mapa en la ruta
+            await Future.delayed(const Duration(milliseconds: 200));
+            if (mounted) _centerOnContent(ref.read(gpsRouteProvider));
+          }
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(gpsRouteProvider);
     final notifier = ref.read(gpsRouteProvider.notifier);
+    final hasRoute = data.selectedRoute != null;
 
     return Stack(
       children: [
-        // Mapa real OpenStreetMap
+        // Mapa OpenStreetMap
         FlutterMap(
           mapController: _mapController,
           options: const MapOptions(
@@ -183,41 +318,64 @@ class _GpsRouteTabState extends ConsumerState<GpsRouteTab> {
           ),
           children: [
             TileLayer(
-              urlTemplate:
-                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.ecoruta.cafetera',
               maxZoom: 19,
             ),
 
-            // Traza de la ruta
+            // Ruta planificada (azul) — user → fincas
+            if (data.plannedPoints.length >= 2)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: data.plannedPoints,
+                    strokeWidth: 4,
+                    color: const Color(0xFF1565C0).withValues(alpha: 0.75),
+                  ),
+                ],
+              ),
+
+            // Trayectoria grabada (verde)
             if (data.routePoints.length >= 2)
               PolylineLayer(
                 polylines: [
                   Polyline(
                     points: data.routePoints,
-                    strokeWidth: 5,
+                    strokeWidth: 4,
                     color: const Color(0xFF4CAF73),
-                    borderStrokeWidth: 2,
-                    borderColor: Colors.white.withValues(alpha: 0.6),
                   ),
                 ],
               ),
 
-            // Marcadores inicio y posicion actual
+            // Markers de fincas — solo las fincas reales (2-4 puntos máx)
+            if (hasRoute && data.fincaWaypoints.isNotEmpty)
+              MarkerLayer(
+                markers: [
+                  for (int i = 0; i < data.fincaWaypoints.length; i++)
+                    Marker(
+                      point: data.fincaWaypoints[i],
+                      width: 32,
+                      height: 32,
+                      child: _FincaWaypointMarker(index: i + 1),
+                    ),
+                ],
+              ),
+
+            // Markers: inicio (usuario) y posición actual
             if (data.routePoints.isNotEmpty)
               MarkerLayer(
                 markers: [
-                  // Inicio
+                  // Ubicación de inicio (usuario)
                   Marker(
                     point: data.routePoints.first,
-                    width: 28,
-                    height: 28,
+                    width: 30,
+                    height: 30,
                     child: const _RouteMarker(
-                      color: EcoRutaColors.primary,
-                      icon: Icons.play_arrow_rounded,
+                      color: Color(0xFF1565C0),
+                      icon: Icons.person_pin_circle_rounded,
                     ),
                   ),
-                  // Posicion actual / fin
+                  // Posición actual grabada
                   if (data.routePoints.length > 1)
                     Marker(
                       point: data.routePoints.last,
@@ -230,19 +388,30 @@ class _GpsRouteTabState extends ConsumerState<GpsRouteTab> {
                                 ? const Color(0xFFF57C00)
                                 : EcoRutaColors.onSurfaceVariant,
                         icon: Icons.my_location_rounded,
-                        pulsing:
-                            data.status == GpsTrackingStatus.recording,
+                        pulsing: data.status == GpsTrackingStatus.recording,
                       ),
                     ),
                 ],
               ),
 
-            // Atribucion OSM
             const SimpleAttributionWidget(
               source: Text('© OpenStreetMap',
                   style: TextStyle(fontSize: 10, color: Colors.black54)),
             ),
           ],
+        ),
+
+        // Botón "Elegir Ruta" — parte superior
+        Positioned(
+          top: 12,
+          left: 16,
+          right: 72,
+          child: _RouteChip(
+            selectedRoute: data.selectedRoute,
+            loading: _loadingRoute,
+            onTap: _showRoutePicker,
+            onClear: hasRoute ? notifier.clearRoute : null,
+          ).animate().fadeIn(duration: 300.ms),
         ),
 
         // Controles flotantes derecha
@@ -253,25 +422,394 @@ class _GpsRouteTabState extends ConsumerState<GpsRouteTab> {
           onZoomOut: () => _mapController.move(
               _mapController.camera.center,
               _mapController.camera.zoom - 1),
-          onCenter: () => _centerOnRoute(data.routePoints),
+          onFitRoute: () => _fitRoute(data),
+          onCenterUser: () => _centerOnUser(data),
         ),
 
-        // Tarjeta de estadísticas + acciones (bottom)
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
-          child: _StatsCard(data: data, notifier: notifier)
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.1),
-        ),
+        // Pantalla vacía cuando no hay ruta seleccionada
+        if (!hasRoute && !_loadingRoute)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: _EmptyRouteCard(onSelectRoute: _showRoutePicker)
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: 0.1),
+          ),
+
+        // Card de estadísticas cuando hay ruta seleccionada
+        if (hasRoute)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: _StatsCard(
+              data: data,
+              notifier: notifier,
+              onStart: () {
+                notifier.start();
+                _centerOnUser(data);
+              },
+            )
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: 0.1),
+          ),
       ],
     );
   }
 }
 
-// ─── Marcador de ruta ─────────────────────────────────────────────────────────
+// ─── Chip de ruta seleccionada ────────────────────────────────────────────────
+
+class _RouteChip extends StatelessWidget {
+  final RutaVisita? selectedRoute;
+  final bool loading;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  const _RouteChip({
+    required this.selectedRoute,
+    required this.loading,
+    required this.onTap,
+    this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: EcoRutaColors.surface,
+      borderRadius: BorderRadius.circular(24),
+      elevation: 4,
+      shadowColor: Colors.black26,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: loading ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(
+                  selectedRoute != null
+                      ? Icons.route_rounded
+                      : Icons.add_road_rounded,
+                  size: 18,
+                  color: selectedRoute != null
+                      ? EcoRutaColors.primary
+                      : EcoRutaColors.onSurfaceVariant,
+                ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loading
+                      ? 'Obteniendo ubicación...'
+                      : selectedRoute?.nombre ?? 'Seleccionar ruta',
+                  style: GoogleFonts.hankenGrotesk(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selectedRoute != null
+                        ? EcoRutaColors.primary
+                        : EcoRutaColors.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (onClear != null && !loading)
+                GestureDetector(
+                  onTap: onClear,
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: EcoRutaColors.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Card vacía sin ruta ──────────────────────────────────────────────────────
+
+class _EmptyRouteCard extends StatelessWidget {
+  final VoidCallback onSelectRoute;
+
+  const _EmptyRouteCard({required this.onSelectRoute});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: EcoRutaColors.surface.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.route_rounded,
+              size: 40, color: EcoRutaColors.primary.withValues(alpha: 0.7)),
+          const SizedBox(height: 10),
+          Text(
+            'Ninguna ruta seleccionada',
+            style: GoogleFonts.hankenGrotesk(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: EcoRutaColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Elige una ruta para ver los puntos a visitar\ny comenzar el seguimiento GPS.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.hankenGrotesk(
+              fontSize: 12,
+              color: EcoRutaColors.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              onPressed: onSelectRoute,
+              icon: const Icon(Icons.add_road_rounded, size: 18),
+              label: Text(
+                'Elegir Ruta',
+                style: GoogleFonts.hankenGrotesk(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Bottom sheet selector de rutas ──────────────────────────────────────────
+
+class _RoutePickerSheet extends StatelessWidget {
+  final List<Finca> fincas;
+  final void Function(RutaVisita) onRouteSelected;
+
+  const _RoutePickerSheet({
+    required this.fincas,
+    required this.onRouteSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rutas = RutaVisita.rutasPredefinidas;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: EcoRutaColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: EcoRutaColors.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Seleccionar Ruta',
+            style: GoogleFonts.hankenGrotesk(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: EcoRutaColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'La ruta inicia desde tu ubicación actual',
+            style: GoogleFonts.hankenGrotesk(
+              fontSize: 12,
+              color: EcoRutaColors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...rutas.map((ruta) {
+            final fincasEnRuta = fincas
+                .where((f) => ruta.fincaIds.contains(f.id))
+                .toList();
+            return _RouteItem(
+              ruta: ruta,
+              fincasEnRuta: fincasEnRuta,
+              onTap: () => onRouteSelected(ruta),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteItem extends StatelessWidget {
+  final RutaVisita ruta;
+  final List<Finca> fincasEnRuta;
+  final VoidCallback onTap;
+
+  const _RouteItem({
+    required this.ruta,
+    required this.fincasEnRuta,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: EcoRutaColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: EcoRutaColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.route_rounded,
+                      color: EcoRutaColors.primary, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ruta.nombre,
+                        style: GoogleFonts.hankenGrotesk(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: EcoRutaColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        ruta.descripcion,
+                        style: GoogleFonts.hankenGrotesk(
+                          fontSize: 12,
+                          color: EcoRutaColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.agriculture_rounded,
+                              size: 13, color: EcoRutaColors.secondary),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${fincasEnRuta.length} finca${fincasEnRuta.length != 1 ? 's' : ''}',
+                            style: GoogleFonts.hankenGrotesk(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: EcoRutaColors.secondary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.location_on_outlined,
+                              size: 13, color: EcoRutaColors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Inicia desde tu GPS',
+                            style: GoogleFonts.hankenGrotesk(
+                              fontSize: 11,
+                              color: EcoRutaColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded,
+                    color: EcoRutaColors.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Marker numerado de finca waypoint ───────────────────────────────────────
+
+class _FincaWaypointMarker extends StatelessWidget {
+  final int index;
+
+  const _FincaWaypointMarker({required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: EcoRutaColors.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: EcoRutaColors.primary.withValues(alpha: 0.4),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          '$index',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Marcador genérico de ruta ────────────────────────────────────────────────
 
 class _RouteMarker extends StatelessWidget {
   final Color color;
@@ -318,12 +856,14 @@ class _RouteMarker extends StatelessWidget {
 class _MapControlsColumn extends StatelessWidget {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
-  final VoidCallback onCenter;
+  final VoidCallback onFitRoute;
+  final VoidCallback onCenterUser;
 
   const _MapControlsColumn({
     required this.onZoomIn,
     required this.onZoomOut,
-    required this.onCenter,
+    required this.onFitRoute,
+    required this.onCenterUser,
   });
 
   @override
@@ -340,7 +880,9 @@ class _MapControlsColumn extends StatelessWidget {
             const SizedBox(height: 8),
             _MapBtn(icon: Icons.remove_rounded, onTap: onZoomOut),
             const SizedBox(height: 8),
-            _MapBtn(icon: Icons.my_location_rounded, onTap: onCenter),
+            _MapBtn(icon: Icons.my_location_rounded, onTap: onCenterUser),
+            const SizedBox(height: 8),
+            _MapBtn(icon: Icons.route_rounded, onTap: onFitRoute),
           ],
         ),
       ),
@@ -379,8 +921,9 @@ class _MapBtn extends StatelessWidget {
 class _StatsCard extends StatelessWidget {
   final GpsRouteData data;
   final GpsRouteNotifier notifier;
+  final VoidCallback? onStart;
 
-  const _StatsCard({required this.data, required this.notifier});
+  const _StatsCard({required this.data, required this.notifier, this.onStart});
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +932,7 @@ class _StatsCard extends StatelessWidget {
     final isPaused = data.status == GpsTrackingStatus.paused;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(
         color: EcoRutaColors.surface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(16),
@@ -407,45 +950,73 @@ class _StatsCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Indicador de estado
-          if (!isIdle)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isRecording
-                          ? const Color(0xFF4CAF73)
-                          : const Color(0xFFF57C00),
-                    ),
-                  )
-                      .animate(
-                          onPlay: (c) => c.repeat(),
-                          target: isRecording ? 1 : 0)
-                      .fadeIn(duration: 600.ms)
-                      .then()
-                      .fadeOut(duration: 600.ms),
-                  const SizedBox(width: 8),
-                  Text(
-                    isRecording ? 'Grabando ruta...' : 'Ruta pausada',
-                    style: GoogleFonts.hankenGrotesk(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isRecording
-                          ? const Color(0xFF2A6B2C)
-                          : const Color(0xFFBF6000),
-                    ),
+          // Nombre de ruta + estado
+          Row(
+            children: [
+              const Icon(Icons.route_rounded,
+                  size: 15, color: EcoRutaColors.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  data.selectedRoute?.nombre ?? '',
+                  style: GoogleFonts.hankenGrotesk(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: EcoRutaColors.primary,
                   ),
-                ],
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
+              if (!isIdle)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isRecording
+                            ? const Color(0xFF4CAF73)
+                            : const Color(0xFFF57C00),
+                      ),
+                    )
+                        .animate(
+                            onPlay: (c) => c.repeat(),
+                            target: isRecording ? 1 : 0)
+                        .fadeIn(duration: 600.ms)
+                        .then()
+                        .fadeOut(duration: 600.ms),
+                    const SizedBox(width: 6),
+                    Text(
+                      isRecording ? 'Grabando' : 'Pausado',
+                      style: GoogleFonts.hankenGrotesk(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isRecording
+                            ? const Color(0xFF2A6B2C)
+                            : const Color(0xFFBF6000),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
 
-          // Fila de estadisticas
+          const SizedBox(height: 10),
+
+          // Leyenda de colores
+          Row(
+            children: [
+              _LegendDot(color: const Color(0xFF1565C0), label: 'Ruta planificada'),
+              const SizedBox(width: 14),
+              _LegendDot(color: const Color(0xFF4CAF73), label: 'Trayectoria GPS'),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Estadísticas
           IntrinsicHeight(
             child: Row(
               children: [
@@ -473,18 +1044,18 @@ class _StatsCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: _StatCell(
-                    label: 'Puntos GPS',
-                    value: data.gpsPoints.toString(),
-                    icon: Icons.pin_drop_outlined,
+                    label: 'Fincas',
+                    value: '${data.fincaWaypoints.length}',
+                    icon: Icons.agriculture_rounded,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // Botones de accion
+          // Botones
           Row(
             children: [
               Expanded(
@@ -493,7 +1064,7 @@ class _StatsCard extends StatelessWidget {
                   icon: Icons.play_arrow_rounded,
                   color: EcoRutaColors.primary,
                   enabled: !isRecording,
-                  onTap: notifier.start,
+                  onTap: onStart ?? notifier.start,
                 ),
               ),
               const SizedBox(width: 8),
@@ -520,6 +1091,38 @@ class _StatsCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 4,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: GoogleFonts.hankenGrotesk(
+            fontSize: 10,
+            color: EcoRutaColors.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
