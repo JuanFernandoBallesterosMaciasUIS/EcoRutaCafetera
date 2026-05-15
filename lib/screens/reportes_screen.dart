@@ -234,12 +234,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _isGenerating
-                    ? null
-                    : () => _generate(
-                          _filteredFincas(fincas),
-                          _filteredVisitas(visitas, fincas),
-                        ),
+                onPressed: _isGenerating ? null : _generate,
                 icon: _isGenerating
                     ? const SizedBox(
                         width: 20,
@@ -314,8 +309,13 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
 
   // ─── Generation ─────────────────────────────────────────────────────────────
 
-  Future<void> _generate(List<Finca> fincas, List<Visita> visitas) async {
+  Future<void> _generate() async {
     setState(() => _isGenerating = true);
+
+    final allFincas = ref.read(fincasProvider);
+    final allVisitas = ref.read(visitasProvider);
+    final fincas = _filteredFincas(allFincas);
+    final visitas = _filteredVisitas(allVisitas, allFincas);
 
     try {
       final municipioSlug = _selectedMunicipio == null

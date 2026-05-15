@@ -443,7 +443,7 @@ class _HomeTab extends ConsumerWidget {
             const SectionHeader(title: 'Acciones rápidas'),
             const SizedBox(height: 16),
 
-            if (isTecnico || user.rol == UserRole.consultor) ...[
+            if (isTecnico) ...[
               QuickActionButton(
                 icon: Icons.add_home_rounded,
                 title: 'Registrar Finca',
@@ -452,7 +452,9 @@ class _HomeTab extends ConsumerWidget {
               ).animate().fadeIn(delay: 300.ms),
 
               const SizedBox(height: 12),
+            ],
 
+            if (isTecnico) ...[
               QuickActionButton(
                 isPrimary: true,
                 icon: Icons.route_rounded,
@@ -471,6 +473,27 @@ class _HomeTab extends ConsumerWidget {
                 iconColor: EcoRutaColors.onTertiaryContainer,
                 onTap: onSwitchToFincas,
               ).animate().fadeIn(delay: 400.ms),
+            ],
+
+            if (user.rol == UserRole.consultor) ...[
+              QuickActionButton(
+                isPrimary: true,
+                icon: Icons.agriculture_rounded,
+                title: 'Explorar Fincas',
+                subtitle: 'Ver historial de visitas e indicadores',
+                onTap: onSwitchToFincas,
+              ).animate().fadeIn(delay: 300.ms),
+
+              const SizedBox(height: 12),
+
+              QuickActionButton(
+                icon: Icons.assessment_rounded,
+                title: 'Ver Reportes',
+                subtitle: 'Consultar datos y reportes existentes',
+                iconBgColor: EcoRutaColors.tertiaryContainer,
+                iconColor: EcoRutaColors.onTertiaryContainer,
+                onTap: () => context.go('/reportes'),
+              ).animate().fadeIn(delay: 350.ms),
             ],
 
             if (isAdmin) ...[
@@ -618,11 +641,13 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
                   icon: Icons.agriculture_outlined,
                   title: 'Sin resultados',
                   subtitle: 'No se encontraron fincas con ese criterio',
-                  action: ElevatedButton.icon(
-                    onPressed: () => context.go('/finca/nueva'),
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Registrar finca'),
-                  ),
+                  action: ref.watch(authProvider)?.rol == UserRole.consultor
+                      ? null
+                      : ElevatedButton.icon(
+                          onPressed: () => context.go('/finca/nueva'),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('Registrar finca'),
+                        ),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
@@ -688,7 +713,8 @@ class _MapTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (user.rol == UserRole.administrador) {
+    if (user.rol == UserRole.administrador ||
+        user.rol == UserRole.consultor) {
       return const MapaFincasScreen(embedded: true);
     }
     return const GpsRouteTab();

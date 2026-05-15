@@ -620,57 +620,140 @@ class _RoutePickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rutas = RutaVisita.rutasPredefinidas;
+    final fincasConGps = fincas
+        .where((f) => f.latitud != null && f.longitud != null && f.id != null)
+        .toList();
+
+    final rutasDinamicas = <RutaVisita>[];
+    if (fincasConGps.isNotEmpty) {
+      rutasDinamicas.add(RutaVisita(
+        id: 99,
+        nombre: 'Todas las fincas registradas',
+        descripcion:
+            '${fincasConGps.length} finca${fincasConGps.length != 1 ? 's' : ''} con ubicación GPS',
+        fincaIds: fincasConGps.map((f) => f.id!).toList(),
+      ));
+    }
+
+    // Excluir "Ruta Completa" predefinida (id:3) — reemplazada por la dinámica
+    final rutasGrupales = [
+      ...RutaVisita.rutasPredefinidas.where((r) => r.id != 3),
+      ...rutasDinamicas,
+    ];
+
+    // Rutas individuales: una por finca con GPS
+    final rutasIndividuales = fincasConGps
+        .asMap()
+        .entries
+        .map((e) => RutaVisita(
+              id: 100 + e.key,
+              nombre: e.value.nombre,
+              descripcion:
+                  '${e.value.propietario} • ${e.value.municipioNombre}',
+              fincaIds: [e.value.id!],
+            ))
+        .toList();
 
     return Container(
       decoration: const BoxDecoration(
         color: EcoRutaColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.80,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: EcoRutaColors.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+          // Handle + header (fijo, no scrollea)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: EcoRutaColors.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Seleccionar Ruta',
+                  style: GoogleFonts.hankenGrotesk(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: EcoRutaColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'La ruta inicia desde tu ubicación actual',
+                  style: GoogleFonts.hankenGrotesk(
+                    fontSize: 12,
+                    color: EcoRutaColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+
+          // Lista scrollable
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Rutas grupales
+                  ...rutasGrupales.map((ruta) {
+                    final fincasEnRuta = fincas
+                        .where((f) => ruta.fincaIds.contains(f.id))
+                        .toList();
+                    return _RouteItem(
+                      ruta: ruta,
+                      fincasEnRuta: fincasEnRuta,
+                      onTap: () => onRouteSelected(ruta),
+                    );
+                  }),
+
+                  // Separador + sección por finca individual
+                  if (rutasIndividuales.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'IR A UNA FINCA ESPECÍFICA',
+                        style: GoogleFonts.hankenGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: EcoRutaColors.onSurfaceVariant,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                    ...rutasIndividuales.map((ruta) {
+                      final fincasEnRuta = fincas
+                          .where((f) => ruta.fincaIds.contains(f.id))
+                          .toList();
+                      return _RouteItem(
+                        ruta: ruta,
+                        fincasEnRuta: fincasEnRuta,
+                        onTap: () => onRouteSelected(ruta),
+                        icon: Icons.agriculture_rounded,
+                      );
+                    }),
+                  ],
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Seleccionar Ruta',
-            style: GoogleFonts.hankenGrotesk(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: EcoRutaColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'La ruta inicia desde tu ubicación actual',
-            style: GoogleFonts.hankenGrotesk(
-              fontSize: 12,
-              color: EcoRutaColors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...rutas.map((ruta) {
-            final fincasEnRuta = fincas
-                .where((f) => ruta.fincaIds.contains(f.id))
-                .toList();
-            return _RouteItem(
-              ruta: ruta,
-              fincasEnRuta: fincasEnRuta,
-              onTap: () => onRouteSelected(ruta),
-            );
-          }),
         ],
       ),
     );
@@ -681,11 +764,13 @@ class _RouteItem extends StatelessWidget {
   final RutaVisita ruta;
   final List<Finca> fincasEnRuta;
   final VoidCallback onTap;
+  final IconData icon;
 
   const _RouteItem({
     required this.ruta,
     required this.fincasEnRuta,
     required this.onTap,
+    this.icon = Icons.route_rounded,
   });
 
   @override
@@ -709,7 +794,7 @@ class _RouteItem extends StatelessWidget {
                     color: EcoRutaColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.route_rounded,
+                  child: Icon(icon,
                       color: EcoRutaColors.primary, size: 22),
                 ),
                 const SizedBox(width: 12),

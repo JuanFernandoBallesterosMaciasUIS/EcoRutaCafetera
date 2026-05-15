@@ -11,6 +11,7 @@ import '../screens/pendientes_screen.dart';
 import '../screens/mapa_fincas_screen.dart';
 import '../screens/usuarios_screen.dart';
 import '../screens/reportes_screen.dart';
+import '../models/models.dart';
 import '../services/providers.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -25,6 +26,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (!isAuth && !isOnAuthPage) return '/';
       if (isAuth && isOnAuthPage) return '/home';
+
+      // Consultor: solo lectura — bloquear rutas de escritura
+      if (isAuth && user.rol == UserRole.consultor) {
+        final loc = state.matchedLocation;
+        if (loc.startsWith('/finca/nueva') ||
+            loc.startsWith('/visita/nueva') ||
+            loc.startsWith('/usuarios')) {
+          return '/home';
+        }
+      }
       return null;
     },
     routes: [
