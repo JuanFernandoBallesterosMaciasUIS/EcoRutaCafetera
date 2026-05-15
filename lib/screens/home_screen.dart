@@ -448,9 +448,7 @@ class _HomeTab extends ConsumerWidget {
                 icon: Icons.add_home_rounded,
                 title: 'Registrar Finca',
                 subtitle: 'Dar de alta un nuevo predio',
-                onTap: user.rol == UserRole.consultor
-                    ? null
-                    : () => context.go('/finca/nueva'),
+                onTap: () => context.go('/finca/nueva'),
               ).animate().fadeIn(delay: 300.ms),
 
               const SizedBox(height: 12),
