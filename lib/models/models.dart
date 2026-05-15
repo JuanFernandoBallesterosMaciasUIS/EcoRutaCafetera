@@ -178,6 +178,8 @@ class Finca {
   final double? latitud;
   final double? longitud;
   final int municipioId;
+  final String? municipioNombreCustom;
+  final String? departamentoCustom;
   final SyncStatus syncStatus;
   final DateTime? fechaRegistro;
 
@@ -191,11 +193,14 @@ class Finca {
     this.latitud,
     this.longitud,
     required this.municipioId,
+    this.municipioNombreCustom,
+    this.departamentoCustom,
     this.syncStatus = SyncStatus.pendiente,
     this.fechaRegistro,
   });
 
   String get municipioNombre =>
+      municipioNombreCustom ??
       Municipio.municipiosPiloto
           .firstWhere((m) => m.id == municipioId,
               orElse: () => const Municipio(
@@ -212,6 +217,8 @@ class Finca {
     double? latitud,
     double? longitud,
     int? municipioId,
+    String? municipioNombreCustom,
+    String? departamentoCustom,
     SyncStatus? syncStatus,
     DateTime? fechaRegistro,
   }) {
@@ -225,6 +232,8 @@ class Finca {
       latitud: latitud ?? this.latitud,
       longitud: longitud ?? this.longitud,
       municipioId: municipioId ?? this.municipioId,
+      municipioNombreCustom: municipioNombreCustom ?? this.municipioNombreCustom,
+      departamentoCustom: departamentoCustom ?? this.departamentoCustom,
       syncStatus: syncStatus ?? this.syncStatus,
       fechaRegistro: fechaRegistro ?? this.fechaRegistro,
     );

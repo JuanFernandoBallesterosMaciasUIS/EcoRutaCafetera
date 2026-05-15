@@ -1,7 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/location_service.dart';
@@ -20,13 +25,17 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
   final _propietarioController = TextEditingController();
   final _veredaController = TextEditingController();
   final _hectareasController = TextEditingController();
-  Municipio? _selectedMunicipio;
+  final _mapController = MapController();
+
   String _selectedVariedad = 'Castillo';
-  bool _capturedGps = false;
-  bool _isLoading = false;
   bool _consentAccepted = false;
-  double? _capturedLat;
-  double? _capturedLng;
+  bool _isLocating = false;
+  bool _isGeocoding = false;
+
+  LatLng? _selectedPoint;
+  String? _detectedMunicipio;
+  String? _detectedDepartamento;
+  Municipio? _detectedMunicipioObj;
 
   static const List<String> _variedades = [
     'Castillo',
@@ -39,68 +48,102 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
     'Otro',
   ];
 
+  static const _initialCenter = LatLng(6.55, -73.60);
+
   @override
   void dispose() {
     _nombreController.dispose();
     _propietarioController.dispose();
     _veredaController.dispose();
     _hectareasController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
-  Future<void> _captureGps() async {
-    setState(() => _isLoading = true);
+  void _onMapTap(TapPosition _, LatLng point) {
+    setState(() {
+      _selectedPoint = point;
+      _detectedMunicipio = null;
+      _detectedDepartamento = null;
+      _detectedMunicipioObj = null;
+      _isGeocoding = true;
+    });
+    _reverseGeocode(point.latitude, point.longitude);
+  }
 
-    // Intenta GPS real
+  Future<void> _useGpsLocation() async {
+    setState(() => _isLocating = true);
     final loc = await LocationService.getCurrentLocation();
-
-    double lat;
-    double lng;
-    bool usedGps;
-
-    if (loc != null) {
-      lat = loc.latitude;
-      lng = loc.longitude;
-      usedGps = true;
-    } else {
-      // Fallback: centro del municipio seleccionado
-      final mun = _selectedMunicipio;
-      if (mun == null) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Selecciona un municipio primero'),
-              backgroundColor: EcoRutaColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-        return;
-      }
-      lat = mun.latCenter;
-      lng = mun.lngCenter;
-      usedGps = false;
-    }
-
-    if (mounted) {
-      setState(() {
-        _capturedGps = true;
-        _capturedLat = lat;
-        _capturedLng = lng;
-        _isLoading = false;
-      });
+    if (!mounted) return;
+    if (loc == null) {
+      setState(() => _isLocating = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(usedGps
-              ? 'GPS capturado: ${lat.toStringAsFixed(4)}°N, ${lng.abs().toStringAsFixed(4)}°O'
-              : 'Usando centro de ${_selectedMunicipio!.nombre}'),
-          backgroundColor: EcoRutaColors.secondary,
+          content: const Text('No se pudo obtener el GPS. Toca el mapa manualmente.'),
+          backgroundColor: EcoRutaColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+      return;
+    }
+    final point = LatLng(loc.latitude, loc.longitude);
+    setState(() {
+      _selectedPoint = point;
+      _isLocating = false;
+      _detectedMunicipio = null;
+      _detectedDepartamento = null;
+      _detectedMunicipioObj = null;
+      _isGeocoding = true;
+    });
+    _mapController.move(point, 13.5);
+    _reverseGeocode(loc.latitude, loc.longitude);
+  }
+
+  Future<void> _reverseGeocode(double lat, double lng) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=$lat&lon=$lng&format=json&addressdetails=1',
+      );
+      final response = await http.get(uri, headers: {
+        'Accept-Language': 'es',
+        'User-Agent': 'EcoRutaCafetera/1.0',
+      });
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final address = (data['address'] as Map<String, dynamic>?) ?? {};
+        final rawMun = (address['municipality'] ??
+                address['city'] ??
+                address['town'] ??
+                address['village'] ??
+                address['county'] ??
+                '') as String;
+        final rawDep = (address['state'] ?? '') as String;
+
+        // Match against pilot list (case-insensitive contains)
+        Municipio? matched;
+        final munNorm = rawMun.toLowerCase().trim();
+        for (final m in Municipio.municipiosPiloto) {
+          final mNorm = m.nombre.toLowerCase();
+          if (munNorm.contains(mNorm) || mNorm.contains(munNorm)) {
+            matched = m;
+            break;
+          }
+        }
+
+        setState(() {
+          _detectedMunicipio = rawMun.isNotEmpty ? rawMun : 'Fuera de cobertura';
+          _detectedDepartamento = rawDep;
+          _detectedMunicipioObj = matched;
+          _isGeocoding = false;
+        });
+      } else {
+        setState(() => _isGeocoding = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isGeocoding = false);
     }
   }
 
@@ -117,6 +160,17 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
       );
       return;
     }
+    if (_selectedPoint == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Selecciona la ubicación de la finca en el mapa'),
+          backgroundColor: EcoRutaColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
 
     final finca = Finca(
       nombre: _nombreController.text.trim(),
@@ -124,9 +178,13 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
       vereda: _veredaController.text.trim(),
       hectareas: double.tryParse(_hectareasController.text) ?? 0,
       variedadCafe: _selectedVariedad,
-      latitud: _capturedGps ? _capturedLat : null,
-      longitud: _capturedGps ? _capturedLng : null,
-      municipioId: _selectedMunicipio?.id ?? 2,
+      latitud: _selectedPoint!.latitude,
+      longitud: _selectedPoint!.longitude,
+      municipioId: _detectedMunicipioObj?.id ?? 0,
+      municipioNombreCustom:
+          _detectedMunicipioObj == null ? _detectedMunicipio : null,
+      departamentoCustom:
+          _detectedMunicipioObj == null ? _detectedDepartamento : null,
     );
 
     ref.read(fincasProvider.notifier).addFinca(finca);
@@ -184,7 +242,8 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.add_home_rounded, size: 80, color: EcoRutaColors.onPrimaryContainer),
+              const Icon(Icons.add_home_rounded,
+                  size: 80, color: EcoRutaColors.onPrimaryContainer),
               const SizedBox(height: 24),
               Text(
                 'Nueva Finca',
@@ -203,14 +262,14 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
                     ),
               ),
               const SizedBox(height: 32),
-              // RF tags
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: ['RF-01', 'RF-03', 'RF-09', 'RNF-09'].map((tag) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: EcoRutaColors.primary.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(999),
@@ -241,18 +300,20 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Consentimiento banner
+            // Consent banner
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: EcoRutaColors.errorContainer.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: EcoRutaColors.error.withOpacity(0.2)),
+                border:
+                    Border.all(color: EcoRutaColors.error.withOpacity(0.2)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.shield_outlined, color: EcoRutaColors.error, size: 20),
+                  const Icon(Icons.shield_outlined,
+                      color: EcoRutaColors.error, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -260,31 +321,36 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
                       children: [
                         Text(
                           'Consentimiento informado requerido',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: EcoRutaColors.onErrorContainer,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: EcoRutaColors.onErrorContainer,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Según Ley 1581/2012 (Habeas Data), el propietario debe autorizar el registro de sus datos.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: EcoRutaColors.onErrorContainer,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: EcoRutaColors.onErrorContainer,
+                                  ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Checkbox(
                               value: _consentAccepted,
-                              onChanged: (v) => setState(() => _consentAccepted = v ?? false),
+                              onChanged: (v) =>
+                                  setState(() => _consentAccepted = v ?? false),
                             ),
                             Expanded(
                               child: Text(
                                 'El propietario ha sido informado y acepta',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: EcoRutaColors.onErrorContainer,
-                                    ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                        color: EcoRutaColors.onErrorContainer),
                               ),
                             ),
                           ],
@@ -306,7 +372,8 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
               hint: 'Ej: La Esperanza',
               icon: Icons.home_outlined,
               delay: 50,
-              validator: (v) => v?.trim().isEmpty ?? true ? 'Campo requerido' : null,
+              validator: (v) =>
+                  v?.trim().isEmpty ?? true ? 'Campo requerido' : null,
             ),
 
             const SizedBox(height: 16),
@@ -317,7 +384,8 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
               hint: 'Nombre completo',
               icon: Icons.person_outline_rounded,
               delay: 100,
-              validator: (v) => v?.trim().isEmpty ?? true ? 'Campo requerido' : null,
+              validator: (v) =>
+                  v?.trim().isEmpty ?? true ? 'Campo requerido' : null,
             ),
 
             const SizedBox(height: 16),
@@ -328,7 +396,8 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
               hint: 'Ej: El Palmar',
               icon: Icons.landscape_outlined,
               delay: 150,
-              validator: (v) => v?.trim().isEmpty ?? true ? 'Campo requerido' : null,
+              validator: (v) =>
+                  v?.trim().isEmpty ?? true ? 'Campo requerido' : null,
             ),
 
             const SizedBox(height: 16),
@@ -339,19 +408,23 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _FieldLabel('Municipio'),
+                      _FieldLabel('Hectáreas'),
                       const SizedBox(height: 6),
-                      DropdownButtonFormField<Municipio>(
-                        value: _selectedMunicipio,
-                        hint: const Text('Seleccionar'),
+                      TextFormField(
+                        controller: _hectareasController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.location_city_outlined),
+                          hintText: 'Ej: 3.5',
+                          prefixIcon: Icon(Icons.square_foot_rounded),
+                          suffixText: 'ha',
                         ),
-                        items: Municipio.municipiosPiloto.map((m) {
-                          return DropdownMenuItem(value: m, child: Text(m.nombre));
-                        }).toList(),
-                        onChanged: (v) => setState(() => _selectedMunicipio = v),
-                        validator: (v) => v == null ? 'Requerido' : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Requerido';
+                          if (double.tryParse(v) == null)
+                            return 'Número inválido';
+                          return null;
+                        },
                       ),
                     ],
                   ).animate().fadeIn(delay: 200.ms),
@@ -361,21 +434,18 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _FieldLabel('Hectáreas'),
+                      _FieldLabel('Variedad de café'),
                       const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _hectareasController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      DropdownButtonFormField<String>(
+                        value: _selectedVariedad,
                         decoration: const InputDecoration(
-                          hintText: 'Ej: 3.5',
-                          prefixIcon: Icon(Icons.square_foot_rounded),
-                          suffixText: 'ha',
+                          prefixIcon: Icon(Icons.eco_outlined),
                         ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Requerido';
-                          if (double.tryParse(v) == null) return 'Número inválido';
-                          return null;
-                        },
+                        items: _variedades.map((v) {
+                          return DropdownMenuItem(value: v, child: Text(v));
+                        }).toList(),
+                        onChanged: (v) =>
+                            setState(() => _selectedVariedad = v!),
                       ),
                     ],
                   ).animate().fadeIn(delay: 250.ms),
@@ -383,96 +453,236 @@ class _NuevaFincaScreenState extends ConsumerState<NuevaFincaScreen> {
               ],
             ),
 
-            const SizedBox(height: 16),
-
-            _FieldLabel('Variedad de café'),
-            const SizedBox(height: 6),
-            DropdownButtonFormField<String>(
-              value: _selectedVariedad,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.eco_outlined),
-              ),
-              items: _variedades.map((v) {
-                return DropdownMenuItem(value: v, child: Text(v));
-              }).toList(),
-              onChanged: (v) => setState(() => _selectedVariedad = v!),
-            ).animate().fadeIn(delay: 300.ms),
-
-            const SizedBox(height: 24),
-            _SectionTitle('Georreferenciación'),
+            const SizedBox(height: 28),
+            _SectionTitle('Ubicación en el mapa'),
+            const SizedBox(height: 4),
+            Text(
+              'Toca el mapa para marcar la ubicación exacta de la finca. El municipio y departamento se detectan automáticamente.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: EcoRutaColors.onSurfaceVariant,
+                  ),
+            ),
             const SizedBox(height: 12),
 
-            // GPS capture
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _capturedGps
-                    ? EcoRutaColors.secondaryContainer.withOpacity(0.4)
-                    : EcoRutaColors.surfaceContainer,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _capturedGps
-                      ? EcoRutaColors.secondary.withOpacity(0.3)
-                      : EcoRutaColors.outlineVariant,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _capturedGps ? Icons.gps_fixed_rounded : Icons.gps_not_fixed_rounded,
-                    color: _capturedGps ? EcoRutaColors.secondary : EcoRutaColors.onSurfaceVariant,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _capturedGps ? 'GPS capturado' : 'Capturar coordenadas GPS',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: _capturedGps
-                                    ? EcoRutaColors.secondary
-                                    : EcoRutaColors.onSurface,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        Text(
-                          _capturedGps
-                              ? '${_capturedLat!.toStringAsFixed(4)}°N, ${_capturedLng!.abs().toStringAsFixed(4)}°O'
-                              : 'GPS + GLONASS • sub-métrico',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: EcoRutaColors.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!_capturedGps)
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _captureGps,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(80, 40),
-                        backgroundColor: EcoRutaColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text('Capturar'),
-                    ),
-                ],
-              ),
-            ).animate().fadeIn(delay: 350.ms),
+            _buildMapPicker(),
 
             const SizedBox(height: 80),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMapPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Map container
+        Container(
+          height: 300,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: _selectedPoint != null
+                  ? EcoRutaColors.secondary.withOpacity(0.5)
+                  : EcoRutaColors.outlineVariant,
+              width: _selectedPoint != null ? 2 : 1,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: _initialCenter,
+                  initialZoom: 8.5,
+                  onTap: _onMapTap,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.ecoruta.cafetera',
+                    maxZoom: 19,
+                  ),
+                  if (_selectedPoint != null)
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _selectedPoint!,
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.topCenter,
+                          child: const Icon(
+                            Icons.location_pin,
+                            color: EcoRutaColors.primary,
+                            size: 48,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black26,
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+
+              // Hint overlay when no point selected
+              if (_selectedPoint == null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.touch_app_rounded,
+                                color: Colors.white, size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              'Toca el mapa para marcar la ubicación',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // GPS button
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Material(
+                  elevation: 4,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: _isLocating ? null : _useGpsLocation,
+                    customBorder: const CircleBorder(),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _isLocating
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: EcoRutaColors.primary),
+                            )
+                          : const Icon(Icons.my_location_rounded,
+                              color: EcoRutaColors.primary, size: 22),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(delay: 300.ms),
+
+        // Detected location info
+        if (_selectedPoint != null) ...[
+          const SizedBox(height: 10),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _detectedMunicipioObj != null
+                  ? EcoRutaColors.secondaryContainer.withOpacity(0.35)
+                  : EcoRutaColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _detectedMunicipioObj != null
+                    ? EcoRutaColors.secondary.withOpacity(0.4)
+                    : EcoRutaColors.outlineVariant,
+              ),
+            ),
+            child: _isGeocoding
+                ? const Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: EcoRutaColors.secondary),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Detectando municipio...'),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _detectedMunicipioObj != null
+                            ? Icons.location_on_rounded
+                            : Icons.location_searching_rounded,
+                        color: _detectedMunicipioObj != null
+                            ? EcoRutaColors.secondary
+                            : EcoRutaColors.onSurfaceVariant,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _detectedMunicipio ?? 'Sin municipio detectado',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            if (_detectedDepartamento?.isNotEmpty == true)
+                              Text(
+                                _detectedDepartamento!,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                        color:
+                                            EcoRutaColors.onSurfaceVariant),
+                              ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${_selectedPoint!.latitude.toStringAsFixed(5)}°N, '
+                              '${_selectedPoint!.longitude.abs().toStringAsFixed(5)}°O',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: EcoRutaColors.onSurfaceVariant,
+                                      fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_detectedMunicipioObj != null)
+                        const Icon(Icons.check_circle_rounded,
+                            color: EcoRutaColors.secondary, size: 20),
+                    ],
+                  ),
+          ),
+        ],
+      ],
     );
   }
 
