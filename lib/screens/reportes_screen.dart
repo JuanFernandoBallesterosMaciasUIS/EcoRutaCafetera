@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -21,15 +20,12 @@ class ReportesScreen extends ConsumerStatefulWidget {
 
 class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   int? _selectedMunicipio;
-  String _tipoReporte = 'PDF';
   String _agrupacion = 'Municipio';
   DateTimeRange? _dateRange;
   bool _isGenerating = false;
   String? _lastGenerated;
   List<int>? _lastBytes;
-  String? _lastMime;
 
-  static const _tiposReporte = ['PDF', 'CSV'];
   static const _agrupaciones = ['Municipio', 'Vereda', 'Finca'];
 
   @override
@@ -122,51 +118,6 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Format picker
-                    const Text('Formato',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: _tiposReporte.map((t) {
-                        final isSelected = _tipoReporte == t;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  t == 'PDF'
-                                      ? Icons.picture_as_pdf_rounded
-                                      : Icons.table_chart_rounded,
-                                  size: 16,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : EcoRutaColors.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(t),
-                              ],
-                            ),
-                            selected: isSelected,
-                            selectedColor: EcoRutaColors.primary,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : EcoRutaColors.onSurfaceVariant,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                            ),
-                            onSelected: (_) =>
-                                setState(() => _tipoReporte = t),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-
-                    const SizedBox(height: 16),
-
                     // Agrupación
                     const Text('Agrupar por',
                         style: TextStyle(fontWeight: FontWeight.w600)),
@@ -298,15 +249,9 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : Icon(
-                        _tipoReporte == 'PDF'
-                            ? Icons.picture_as_pdf_rounded
-                            : Icons.table_chart_rounded,
-                      ),
+                    : const Icon(Icons.picture_as_pdf_rounded),
                 label: Text(
-                  _isGenerating
-                      ? 'Generando $_tipoReporte...'
-                      : 'Descargar reporte $_tipoReporte',
+                  _isGenerating ? 'Generando PDF...' : 'Descargar reporte PDF',
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EcoRutaColors.primary,
@@ -322,7 +267,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               _LastGeneratedCard(
                 filename: _lastGenerated!,
                 onDownload: () =>
-                    downloadFile(_lastBytes!, _lastGenerated!, _lastMime!),
+                    downloadFile(_lastBytes!, _lastGenerated!, 'application/pdf'),
               ),
             ],
 
@@ -394,30 +339,17 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
       final fecha =
           '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
 
-      List<int> bytes;
-      String filename;
-      String mime;
+      final bytes = await _buildPdf(fincas, visitas);
+      final filename =
+          'ecoruta_${municipioSlug}_${_agrupacion.toLowerCase()}_$fecha.pdf';
 
-      if (_tipoReporte == 'PDF') {
-        final pdf = await _buildPdf(fincas, visitas);
-        bytes = pdf;
-        filename = 'ecoruta_${municipioSlug}_${_agrupacion.toLowerCase()}_$fecha.pdf';
-        mime = 'application/pdf';
-      } else {
-        final csv = _buildCsv(fincas, visitas);
-        bytes = utf8.encode(csv);
-        filename = 'ecoruta_${municipioSlug}_${_agrupacion.toLowerCase()}_$fecha.csv';
-        mime = 'text/csv;charset=utf-8';
-      }
-
-      await downloadFile(bytes, filename, mime);
+      await downloadFile(bytes, filename, 'application/pdf');
 
       if (mounted) {
         setState(() {
           _isGenerating = false;
           _lastGenerated = filename;
           _lastBytes = bytes;
-          _lastMime = mime;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -655,80 +587,11 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     );
   }
 
-  // ─── CSV Builder ────────────────────────────────────────────────────────────
-
-  String _buildCsv(List<Finca> fincas, List<Visita> visitas) {
-    final buf = StringBuffer();
-    // UTF-8 BOM so Excel opens with correct encoding
-    buf.write('﻿');
-    buf.writeln('EcoRuta Cafetera - Reporte de Censo Cafetero');
-    buf.writeln('Generado:,${_fmt(DateTime.now())}');
-    buf.writeln('Total fincas:,${fincas.length}');
-    buf.writeln('Total visitas:,${visitas.length}');
-    buf.writeln(
-        'Hectáreas totales:,${fincas.fold(0.0, (s, f) => s + f.hectareas).toStringAsFixed(2)}');
-    buf.writeln();
-
-    buf.writeln('FINCAS');
-    buf.writeln(
-        'Nombre,Propietario,Municipio,Departamento,Vereda,Hectáreas,Variedad,Latitud,Longitud,Estado Sync,Fecha Registro');
-    for (final f in fincas) {
-      buf.writeln([
-        _q(f.nombre),
-        _q(f.propietario),
-        _q(f.municipioNombre),
-        'Santander',
-        _q(f.vereda),
-        f.hectareas,
-        _q(f.variedadCafe),
-        f.latitud ?? '',
-        f.longitud ?? '',
-        f.syncStatus.name,
-        f.fechaRegistro != null ? _fmt(f.fechaRegistro!) : '',
-      ].join(','));
-    }
-
-    if (visitas.isNotEmpty) {
-      buf.writeln();
-      buf.writeln('VISITAS');
-      buf.writeln(
-          'Fecha,Técnico,Finca,Cobertura Vegetal (%),Fuente Agua,Manejo Residuos,Uso Agroquímicos,Prácticas Agroforestales,Producción kg/año,Precio kg COP,Costo Producción COP,Personas Hogar,Menores Edad,Nivel Educativo,Seg. Alimentaria,Prog. Gobierno,Estado Sync');
-      for (final v in visitas) {
-        final fincaNombre = fincas
-            .where((f) => f.id == v.fincaId)
-            .map((f) => f.nombre)
-            .firstOrNull ?? 'ID ${v.fincaId}';
-        buf.writeln([
-          _fmt(v.fecha),
-          _q(v.tecnicoNombre),
-          _q(fincaNombre),
-          v.coberturaVegetal.toStringAsFixed(1),
-          v.tieneFuenteAgua ? 'Sí' : 'No',
-          v.manejoAdecuadoResiduos ? 'Sí' : 'No',
-          v.usoAgroquimicos ? 'Sí' : 'No',
-          v.practicasAgroforestales ? 'Sí' : 'No',
-          v.produccionKgAnio.toStringAsFixed(0),
-          v.precioKgCOP.toStringAsFixed(0),
-          v.costoProduccionCOP.toStringAsFixed(0),
-          v.personasHogar,
-          v.menoresEdad,
-          _q(v.nivelEducativo),
-          v.seguridadAlimentaria ? 'Sí' : 'No',
-          v.accesoProgramasGobierno ? 'Sí' : 'No',
-          v.syncStatus.name,
-        ].join(','));
-      }
-    }
-
-    return buf.toString();
-  }
-
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-  String _q(String s) => '"${s.replaceAll('"', '""')}"';
 }
 
 // ─── Sub-widgets ─────────────────────────────────────────────────────────────
