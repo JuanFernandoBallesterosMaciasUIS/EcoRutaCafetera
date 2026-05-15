@@ -39,6 +39,9 @@ dependencies:
   # Session persistence
   shared_preferences: ^2.3.0
 
+  # PDF generation
+  pdf: ^3.11.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

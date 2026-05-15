@@ -1,10 +1,16 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/providers.dart';
+import '../utils/download_service.dart';
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -20,8 +26,10 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   DateTimeRange? _dateRange;
   bool _isGenerating = false;
   String? _lastGenerated;
+  List<int>? _lastBytes;
+  String? _lastMime;
 
-  static const _tiposReporte = ['PDF', 'Excel'];
+  static const _tiposReporte = ['PDF', 'CSV'];
   static const _agrupaciones = ['Municipio', 'Vereda', 'Finca'];
 
   @override
@@ -90,7 +98,8 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                 Expanded(
                   child: _SummaryCard(
                     icon: Icons.cloud_done_rounded,
-                    value: '${fincas.where((f) => f.syncStatus == SyncStatus.subido).length}',
+                    value:
+                        '${fincas.where((f) => f.syncStatus == SyncStatus.subido).length}',
                     label: 'Sincronizadas',
                     color: EcoRutaColors.tertiary,
                   ),
@@ -100,7 +109,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
 
             const SizedBox(height: 28),
 
-            _SectionTitle(title: 'Configurar reporte')
+            const _SectionTitle(title: 'Configurar reporte')
                 .animate()
                 .fadeIn(delay: 100.ms),
 
@@ -113,7 +122,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tipo de reporte
+                    // Format picker
                     const Text('Formato',
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
@@ -175,8 +184,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                                 ? Colors.white
                                 : EcoRutaColors.onSurfaceVariant,
                           ),
-                          onSelected: (_) =>
-                              setState(() => _agrupacion = a),
+                          onSelected: (_) => setState(() => _agrupacion = a),
                         );
                       }).toList(),
                     ),
@@ -194,7 +202,8 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                       ),
                       items: [
                         const DropdownMenuItem(
-                            value: null, child: Text('Todos los municipios')),
+                            value: null,
+                            child: Text('Todos los municipios')),
                         ...Municipio.municipiosPiloto.map((m) =>
                             DropdownMenuItem(
                                 value: m.id, child: Text(m.nombre))),
@@ -253,8 +262,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
 
             const SizedBox(height: 24),
 
-            // Preview of what will be included
-            _SectionTitle(title: 'Vista previa del contenido')
+            const _SectionTitle(title: 'Vista previa del contenido')
                 .animate()
                 .fadeIn(delay: 200.ms),
             const SizedBox(height: 12),
@@ -277,7 +285,12 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _isGenerating ? null : _generate,
+                onPressed: _isGenerating
+                    ? null
+                    : () => _generate(
+                          _filteredFincas(fincas),
+                          _filteredVisitas(visitas, fincas),
+                        ),
                 icon: _isGenerating
                     ? const SizedBox(
                         width: 20,
@@ -293,7 +306,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                 label: Text(
                   _isGenerating
                       ? 'Generando $_tipoReporte...'
-                      : 'Generar reporte $_tipoReporte',
+                      : 'Descargar reporte $_tipoReporte',
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EcoRutaColors.primary,
@@ -304,10 +317,13 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               ),
             ).animate().fadeIn(delay: 300.ms),
 
-            // Last generated
             if (_lastGenerated != null) ...[
               const SizedBox(height: 16),
-              _LastGeneratedCard(filename: _lastGenerated!),
+              _LastGeneratedCard(
+                filename: _lastGenerated!,
+                onDownload: () =>
+                    downloadFile(_lastBytes!, _lastGenerated!, _lastMime!),
+              ),
             ],
 
             const SizedBox(height: 40),
@@ -317,10 +333,13 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     );
   }
 
+  // ─── Filtering ──────────────────────────────────────────────────────────────
+
   List<Finca> _filteredFincas(List<Finca> all) {
     return all.where((f) {
-      if (_selectedMunicipio != null && f.municipioId != _selectedMunicipio)
+      if (_selectedMunicipio != null && f.municipioId != _selectedMunicipio) {
         return false;
+      }
       if (_dateRange != null && f.fechaRegistro != null) {
         if (f.fechaRegistro!.isBefore(_dateRange!.start) ||
             f.fechaRegistro!.isAfter(_dateRange!.end)) return false;
@@ -341,6 +360,8 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     }).toList();
   }
 
+  // ─── Date picker ────────────────────────────────────────────────────────────
+
   Future<void> _selectDateRange(BuildContext context) async {
     final range = await showDateRangePicker(
       context: context,
@@ -355,80 +376,359 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     if (range != null) setState(() => _dateRange = range);
   }
 
-  Future<void> _generate() async {
+  // ─── Generation ─────────────────────────────────────────────────────────────
+
+  Future<void> _generate(List<Finca> fincas, List<Visita> visitas) async {
     setState(() => _isGenerating = true);
-    await Future.delayed(const Duration(seconds: 2));
 
-    final municipio = _selectedMunicipio == null
-        ? 'santander'
-        : Municipio.municipiosPiloto
-            .firstWhere((m) => m.id == _selectedMunicipio)
-            .nombre
-            .toLowerCase()
-            .replaceAll(' ', '_');
+    try {
+      final municipioSlug = _selectedMunicipio == null
+          ? 'santander'
+          : Municipio.municipiosPiloto
+              .firstWhere((m) => m.id == _selectedMunicipio)
+              .nombre
+              .toLowerCase()
+              .replaceAll(' ', '_');
 
-    final now = DateTime.now();
-    final fecha =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-    final ext = _tipoReporte == 'PDF' ? 'pdf' : 'xlsx';
-    final filename =
-        'ecoruta_${municipio}_${_agrupacion.toLowerCase()}_$fecha.$ext';
+      final now = DateTime.now();
+      final fecha =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
 
-    if (mounted) {
-      setState(() {
-        _isGenerating = false;
-        _lastGenerated = filename;
-      });
+      List<int> bytes;
+      String filename;
+      String mime;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Reporte generado: $filename'),
-          backgroundColor: EcoRutaColors.secondary,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          action: SnackBarAction(
-            label: 'Compartir',
-            textColor: Colors.white,
-            onPressed: () => _shareReport(filename),
+      if (_tipoReporte == 'PDF') {
+        final pdf = await _buildPdf(fincas, visitas);
+        bytes = pdf;
+        filename = 'ecoruta_${municipioSlug}_${_agrupacion.toLowerCase()}_$fecha.pdf';
+        mime = 'application/pdf';
+      } else {
+        final csv = _buildCsv(fincas, visitas);
+        bytes = utf8.encode(csv);
+        filename = 'ecoruta_${municipioSlug}_${_agrupacion.toLowerCase()}_$fecha.csv';
+        mime = 'text/csv;charset=utf-8';
+      }
+
+      await downloadFile(bytes, filename, mime);
+
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+          _lastGenerated = filename;
+          _lastBytes = bytes;
+          _lastMime = mime;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Descargando $filename'),
+            backgroundColor: EcoRutaColors.secondary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al generar reporte: $e'),
+            backgroundColor: EcoRutaColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     }
   }
 
-  void _shareReport(String filename) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Compartir reporte'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  // ─── PDF Builder ────────────────────────────────────────────────────────────
+
+  Future<Uint8List> _buildPdf(List<Finca> fincas, List<Visita> visitas) async {
+    final doc = pw.Document();
+    final now = DateTime.now();
+    final totalHa =
+        fincas.fold(0.0, (sum, f) => sum + f.hectareas);
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(36),
+        header: (ctx) => pw.Container(
+          padding: const pw.EdgeInsets.only(bottom: 8),
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.green800, width: 1.5)),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('EcoRuta Cafetera',
+                  style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green800,
+                      fontSize: 13)),
+              pw.Text('Generado: ${_fmt(now)}',
+                  style: const pw.TextStyle(
+                      fontSize: 9, color: PdfColors.grey600)),
+            ],
+          ),
+        ),
+        footer: (ctx) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text('Página ${ctx.pageNumber} de ${ctx.pagesCount}',
+              style:
+                  const pw.TextStyle(fontSize: 9, color: PdfColors.grey500)),
+        ),
+        build: (ctx) => [
+          // Title block
+          pw.Text(
+            'Reporte de Censo Cafetero',
+            style: pw.TextStyle(
+                fontSize: 22,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.green900),
+          ),
+          pw.Text(
+            _selectedMunicipio == null
+                ? 'Todos los municipios • Santander'
+                : '${Municipio.municipiosPiloto.firstWhere((m) => m.id == _selectedMunicipio).nombre} • Santander',
+            style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Stats row
+          pw.Row(children: [
+            _pdfStat('Fincas', '${fincas.length}'),
+            pw.SizedBox(width: 12),
+            _pdfStat('Visitas', '${visitas.length}'),
+            pw.SizedBox(width: 12),
+            _pdfStat('Hectáreas', '${totalHa.toStringAsFixed(1)} ha'),
+            pw.SizedBox(width: 12),
+            _pdfStat(
+                'Agrupación',
+                _agrupacion),
+          ]),
+          pw.SizedBox(height: 24),
+
+          // Fincas table
+          pw.Text('Fincas registradas',
+              style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.green800)),
+          pw.SizedBox(height: 8),
+          if (fincas.isEmpty)
+            pw.Text('Sin fincas para los filtros seleccionados',
+                style: const pw.TextStyle(
+                    color: PdfColors.grey600, fontSize: 10))
+          else
+            pw.Table.fromTextArray(
+              headers: [
+                'Nombre',
+                'Propietario',
+                'Municipio',
+                'Vereda',
+                'Ha',
+                'Variedad',
+                'Sync'
+              ],
+              data: fincas
+                  .map((f) => [
+                        f.nombre,
+                        f.propietario,
+                        f.municipioNombre,
+                        f.vereda,
+                        f.hectareas.toStringAsFixed(1),
+                        f.variedadCafe,
+                        f.syncStatus.name,
+                      ])
+                  .toList(),
+              headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                  fontSize: 9),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColors.green800),
+              cellStyle: const pw.TextStyle(fontSize: 9),
+              oddRowDecoration:
+                  const pw.BoxDecoration(color: PdfColors.green50),
+              border: pw.TableBorder.all(
+                  color: PdfColors.grey300, width: 0.5),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(2),
+                1: const pw.FlexColumnWidth(2),
+                2: const pw.FlexColumnWidth(1.8),
+                3: const pw.FlexColumnWidth(1.5),
+                4: const pw.FlexColumnWidth(0.8),
+                5: const pw.FlexColumnWidth(1.5),
+                6: const pw.FlexColumnWidth(1),
+              },
+            ),
+
+          if (visitas.isNotEmpty) ...[
+            pw.SizedBox(height: 24),
+            pw.Text('Visitas de campo',
+                style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.green800)),
+            pw.SizedBox(height: 8),
+            pw.Table.fromTextArray(
+              headers: [
+                'Fecha',
+                'Técnico',
+                'Finca',
+                'Cob. Vegetal',
+                'Agua',
+                'Prod. kg/año',
+                'Personas'
+              ],
+              data: visitas.map((v) {
+                final fincaNombre = fincas
+                    .where((f) => f.id == v.fincaId)
+                    .map((f) => f.nombre)
+                    .firstOrNull ?? 'ID ${v.fincaId}';
+                return [
+                  _fmt(v.fecha),
+                  v.tecnicoNombre,
+                  fincaNombre,
+                  '${v.coberturaVegetal.toStringAsFixed(0)}%',
+                  v.tieneFuenteAgua ? 'Sí' : 'No',
+                  v.produccionKgAnio.toStringAsFixed(0),
+                  '${v.personasHogar}',
+                ];
+              }).toList(),
+              headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                  fontSize: 9),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColors.green700),
+              cellStyle: const pw.TextStyle(fontSize: 9),
+              oddRowDecoration:
+                  const pw.BoxDecoration(color: PdfColors.lightGreen50),
+              border: pw.TableBorder.all(
+                  color: PdfColors.grey300, width: 0.5),
+            ),
+          ],
+
+          pw.SizedBox(height: 32),
+          pw.Divider(color: PdfColors.grey300),
+          pw.Text(
+            'EcoRuta Cafetera — Sistema Territorial de Censo Cafetero — Santander, Colombia',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
+          ),
+        ],
+      ),
+    );
+
+    return doc.save();
+  }
+
+  pw.Widget _pdfStat(String label, String value) {
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(8),
+        decoration: pw.BoxDecoration(
+          color: PdfColors.green50,
+          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+          border: pw.Border.all(color: PdfColors.green200, width: 0.5),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            _ShareOption(
-                icon: Icons.message_rounded,
-                label: 'WhatsApp',
-                color: const Color(0xFF25D366)),
-            _ShareOption(
-                icon: Icons.email_rounded,
-                label: 'Correo electrónico',
-                color: EcoRutaColors.primary),
-            _ShareOption(
-                icon: Icons.print_rounded,
-                label: 'Imprimir',
-                color: EcoRutaColors.onSurfaceVariant),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 14,
+                    color: PdfColors.green800)),
+            pw.Text(label,
+                style: const pw.TextStyle(
+                    fontSize: 8, color: PdfColors.grey600)),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cerrar'))
-        ],
       ),
     );
   }
 
+  // ─── CSV Builder ────────────────────────────────────────────────────────────
+
+  String _buildCsv(List<Finca> fincas, List<Visita> visitas) {
+    final buf = StringBuffer();
+    // UTF-8 BOM so Excel opens with correct encoding
+    buf.write('﻿');
+    buf.writeln('EcoRuta Cafetera - Reporte de Censo Cafetero');
+    buf.writeln('Generado:,${_fmt(DateTime.now())}');
+    buf.writeln('Total fincas:,${fincas.length}');
+    buf.writeln('Total visitas:,${visitas.length}');
+    buf.writeln(
+        'Hectáreas totales:,${fincas.fold(0.0, (s, f) => s + f.hectareas).toStringAsFixed(2)}');
+    buf.writeln();
+
+    buf.writeln('FINCAS');
+    buf.writeln(
+        'Nombre,Propietario,Municipio,Departamento,Vereda,Hectáreas,Variedad,Latitud,Longitud,Estado Sync,Fecha Registro');
+    for (final f in fincas) {
+      buf.writeln([
+        _q(f.nombre),
+        _q(f.propietario),
+        _q(f.municipioNombre),
+        'Santander',
+        _q(f.vereda),
+        f.hectareas,
+        _q(f.variedadCafe),
+        f.latitud ?? '',
+        f.longitud ?? '',
+        f.syncStatus.name,
+        f.fechaRegistro != null ? _fmt(f.fechaRegistro!) : '',
+      ].join(','));
+    }
+
+    if (visitas.isNotEmpty) {
+      buf.writeln();
+      buf.writeln('VISITAS');
+      buf.writeln(
+          'Fecha,Técnico,Finca,Cobertura Vegetal (%),Fuente Agua,Manejo Residuos,Uso Agroquímicos,Prácticas Agroforestales,Producción kg/año,Precio kg COP,Costo Producción COP,Personas Hogar,Menores Edad,Nivel Educativo,Seg. Alimentaria,Prog. Gobierno,Estado Sync');
+      for (final v in visitas) {
+        final fincaNombre = fincas
+            .where((f) => f.id == v.fincaId)
+            .map((f) => f.nombre)
+            .firstOrNull ?? 'ID ${v.fincaId}';
+        buf.writeln([
+          _fmt(v.fecha),
+          _q(v.tecnicoNombre),
+          _q(fincaNombre),
+          v.coberturaVegetal.toStringAsFixed(1),
+          v.tieneFuenteAgua ? 'Sí' : 'No',
+          v.manejoAdecuadoResiduos ? 'Sí' : 'No',
+          v.usoAgroquimicos ? 'Sí' : 'No',
+          v.practicasAgroforestales ? 'Sí' : 'No',
+          v.produccionKgAnio.toStringAsFixed(0),
+          v.precioKgCOP.toStringAsFixed(0),
+          v.costoProduccionCOP.toStringAsFixed(0),
+          v.personasHogar,
+          v.menoresEdad,
+          _q(v.nivelEducativo),
+          v.seguridadAlimentaria ? 'Sí' : 'No',
+          v.accesoProgramasGobierno ? 'Sí' : 'No',
+          v.syncStatus.name,
+        ].join(','));
+      }
+    }
+
+    return buf.toString();
+  }
+
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  String _q(String s) => '"${s.replaceAll('"', '""')}"';
 }
 
 // ─── Sub-widgets ─────────────────────────────────────────────────────────────
@@ -479,7 +779,8 @@ class _SummaryCard extends StatelessWidget {
             Text(label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 11, color: EcoRutaColors.onSurfaceVariant)),
+                    fontSize: 11,
+                    color: EcoRutaColors.onSurfaceVariant)),
           ],
         ),
       ),
@@ -502,7 +803,6 @@ class _ReportPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Group fincas by selected grouping
     final Map<String, List<Finca>> groups = {};
     for (final f in fincas) {
       final key = switch (agrupacion) {
@@ -533,7 +833,8 @@ class _ReportPreview extends StatelessWidget {
                         ),
                   ),
                 ),
-                Text('${fincas.length} finca${fincas.length != 1 ? 's' : ''}',
+                Text(
+                    '${fincas.length} finca${fincas.length != 1 ? 's' : ''}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: EcoRutaColors.onSurfaceVariant,
                         )),
@@ -542,8 +843,7 @@ class _ReportPreview extends StatelessWidget {
             const Divider(height: 16),
             if (groups.isEmpty)
               const Text('Sin datos para los filtros seleccionados',
-                  style:
-                      TextStyle(color: EcoRutaColors.onSurfaceVariant))
+                  style: TextStyle(color: EcoRutaColors.onSurfaceVariant))
             else
               ...groups.entries.take(4).map((e) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
@@ -559,10 +859,8 @@ class _ReportPreview extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            e.key,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
+                          child: Text(e.key,
+                              style: Theme.of(context).textTheme.bodySmall),
                         ),
                         Text(
                           '${e.value.length} finca${e.value.length != 1 ? 's' : ''} • '
@@ -596,8 +894,10 @@ class _ReportPreview extends StatelessWidget {
 
 class _LastGeneratedCard extends StatelessWidget {
   final String filename;
+  final VoidCallback onDownload;
 
-  const _LastGeneratedCard({required this.filename});
+  const _LastGeneratedCard(
+      {required this.filename, required this.onDownload});
 
   @override
   Widget build(BuildContext context) {
@@ -606,8 +906,8 @@ class _LastGeneratedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: EcoRutaColors.secondaryContainer.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: EcoRutaColors.secondary.withOpacity(0.3)),
+        border:
+            Border.all(color: EcoRutaColors.secondary.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -632,47 +932,13 @@ class _LastGeneratedCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(
-            onPressed: () {},
-            child: const Text('Descargar'),
+          TextButton.icon(
+            onPressed: onDownload,
+            icon: const Icon(Icons.download_rounded, size: 16),
+            label: const Text('Descargar'),
           ),
         ],
       ),
     ).animate().fadeIn().slideY(begin: 0.3, end: 0);
-  }
-}
-
-class _ShareOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _ShareOption(
-      {required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: color, size: 22),
-      ),
-      title: Text(label),
-      onTap: () {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Compartiendo por $label...'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      },
-    );
   }
 }
