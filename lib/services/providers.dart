@@ -97,7 +97,7 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }) async {
     await Future.delayed(const Duration(milliseconds: 800));
     final key = username.toLowerCase().trim();
-    if (key.isEmpty || password.length < 8) return false;
+    if (key.isEmpty || password.length < 4) return false;
     if (_registeredUsers.containsKey(key)) return false;
     final user = AppUser(
       id: 1000 + _registeredUsers.length,
