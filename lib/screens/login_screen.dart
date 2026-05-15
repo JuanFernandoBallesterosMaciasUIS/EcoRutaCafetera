@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/providers.dart';
-import '../widgets/widgets.dart';
+
+const _kCoffeeBgUrl =
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuAIA-iIqP6BkHzz5FqBP4MS1RE2K6CkHFWLfA23AyQk8a4LZaRwl6WMhnL9HXLgTlG3OhUWTxIdqQXWpVODXm7Vv35P3nic7t5QXP6eKLIuGwn02QaCTfxL-vLhFLCbWSaPtoMAcApKZEwy92Hmex3Z1SOOafqdjjPQcE7irSK1jRY53c18PDAZqI5Z-qCs0W9LhUu7l5ZRtnTQLe3Vi-nQSyW7e5zdhWzRq6me9QegWH8A6wtURmFybA-sdraKCyAuCZsmH1GLrQg';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -20,7 +22,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _keepOffline = false;
 
   @override
   void dispose() {
@@ -68,111 +69,129 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOnline = ref.watch(connectivityProvider);
-
     return Scaffold(
-      backgroundColor: EcoRutaColors.background,
-      appBar: AppBar(
-        backgroundColor: EcoRutaColors.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: EcoRutaColors.onSurfaceVariant,
-          onPressed: () => context.go('/'),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(
-              height: 1, thickness: 1, color: EcoRutaColors.outlineVariant),
-        ),
-      ),
-      body: Column(
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: EcoRutaColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: EcoRutaColors.primary.withOpacity(0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo circle
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: EcoRutaColors.surfaceContainerLow,
-                            shape: BoxShape.circle,
-                            border:
-                                Border.all(color: EcoRutaColors.outlineVariant),
-                          ),
-                          child: const Icon(
-                            Icons.eco_rounded,
-                            color: EcoRutaColors.primary,
-                            size: 40,
-                          ),
-                        )
-                            .animate()
-                            .fadeIn(duration: 400.ms)
-                            .scale(begin: const Offset(0.85, 0.85)),
+          // Background image
+          Image.network(
+            _kCoffeeBgUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              color: EcoRutaColors.primaryContainer,
+            ),
+          ),
 
-                        const SizedBox(height: 8),
-
-                        // Title
-                        Text(
-                          'Iniciar Sesion',
-                          style: GoogleFonts.hankenGrotesk(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: EcoRutaColors.primary,
-                          ),
-                        ).animate(delay: 100.ms).fadeIn(),
-
-                        const SizedBox(height: 24),
-
-                        // Form
-                        _LoginForm(
-                          formKey: _formKey,
-                          usernameController: _usernameController,
-                          passwordController: _passwordController,
-                          obscurePassword: _obscurePassword,
-                          keepOffline: _keepOffline,
-                          isLoading: _isLoading,
-                          onTogglePassword: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                          onToggleOffline: (v) =>
-                              setState(() => _keepOffline = v ?? false),
-                          onLogin: _handleLogin,
-                          onForgotPassword: _showForgotPassword,
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05),
-                ),
+          // Hero overlay gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x3300450D),
+                  Color(0xF2FFFFFF),
+                  Color(0xFFF9F9F9),
+                ],
+                stops: [0.0, 0.70, 1.0],
               ),
             ),
           ),
 
-          // Footer connectivity badge
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: ConnectivityBadge(isOnline: isOnline),
+          // Content
+          Column(
+            children: [
+              // App bar
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  color: EcoRutaColors.onSurfaceVariant,
+                  onPressed: () => context.go('/'),
+                ),
+              ),
+
+              // Form content
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: EcoRutaColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  EcoRutaColors.primary.withValues(alpha: 0.08),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Logo circle
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: EcoRutaColors.surfaceContainerLow,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: EcoRutaColors.outlineVariant),
+                              ),
+                              child: const Icon(
+                                Icons.eco_rounded,
+                                color: EcoRutaColors.primary,
+                                size: 40,
+                              ),
+                            )
+                                .animate()
+                                .fadeIn(duration: 400.ms)
+                                .scale(begin: const Offset(0.85, 0.85)),
+
+                            const SizedBox(height: 8),
+
+                            // Title
+                            Text(
+                              'Iniciar Sesion',
+                              style: GoogleFonts.hankenGrotesk(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: EcoRutaColors.primary,
+                              ),
+                            ).animate(delay: 100.ms).fadeIn(),
+
+                            const SizedBox(height: 24),
+
+                            // Form
+                            _LoginForm(
+                              formKey: _formKey,
+                              usernameController: _usernameController,
+                              passwordController: _passwordController,
+                              obscurePassword: _obscurePassword,
+                              isLoading: _isLoading,
+                              onTogglePassword: () => setState(
+                                  () => _obscurePassword = !_obscurePassword),
+                              onLogin: _handleLogin,
+                              onForgotPassword: _showForgotPassword,
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -187,10 +206,8 @@ class _LoginForm extends StatelessWidget {
   final TextEditingController usernameController;
   final TextEditingController passwordController;
   final bool obscurePassword;
-  final bool keepOffline;
   final bool isLoading;
   final VoidCallback onTogglePassword;
-  final ValueChanged<bool?> onToggleOffline;
   final VoidCallback onLogin;
   final VoidCallback onForgotPassword;
 
@@ -199,10 +216,8 @@ class _LoginForm extends StatelessWidget {
     required this.usernameController,
     required this.passwordController,
     required this.obscurePassword,
-    required this.keepOffline,
     required this.isLoading,
     required this.onTogglePassword,
-    required this.onToggleOffline,
     required this.onLogin,
     required this.onForgotPassword,
   });
@@ -260,8 +275,9 @@ class _LoginForm extends StatelessWidget {
             textInputAction: TextInputAction.next,
             decoration: _fieldDecoration(hint: 'ejemplo@correo.com'),
             validator: (v) {
-              if ((v ?? '').trim().isEmpty)
+              if ((v ?? '').trim().isEmpty) {
                 return 'Ingresa tu usuario o correo';
+              }
               return null;
             },
           ).animate().fadeIn(delay: 150.ms),
@@ -289,35 +305,15 @@ class _LoginForm extends StatelessWidget {
               ),
             ),
             validator: (v) {
-              if (v == null || v.isEmpty) return 'Ingresa tu contrasena';
-              if (v.length < 4) return 'Contrasena muy corta';
+              if (v == null || v.isEmpty) {
+                return 'Ingresa tu contrasena';
+              }
+              if (v.length < 4) {
+                return 'Contrasena muy corta';
+              }
               return null;
             },
           ).animate().fadeIn(delay: 200.ms),
-
-          const SizedBox(height: 16),
-
-          // Offline checkbox
-          Row(
-            children: [
-              Checkbox(
-                value: keepOffline,
-                onChanged: onToggleOffline,
-                activeColor: EcoRutaColors.secondary,
-              ),
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: () => onToggleOffline(!keepOffline),
-                child: Text(
-                  'Mantener sesion offline',
-                  style: GoogleFonts.hankenGrotesk(
-                    fontSize: 14,
-                    color: EcoRutaColors.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ).animate().fadeIn(delay: 250.ms),
 
           const SizedBox(height: 24),
 
@@ -353,7 +349,7 @@ class _LoginForm extends StatelessWidget {
                       ),
                     ),
             ),
-          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+          ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
 
           const SizedBox(height: 20),
 
@@ -371,7 +367,7 @@ class _LoginForm extends StatelessWidget {
                 ),
               ),
             ),
-          ).animate().fadeIn(delay: 350.ms),
+          ).animate().fadeIn(delay: 300.ms),
         ],
       ),
     );
