@@ -126,8 +126,7 @@ class _MobileHomeLayoutState extends ConsumerState<_MobileHomeLayout> {
             child: const Icon(Icons.eco_rounded, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 10),
-          Text('EcoRuta',
-              style: Theme.of(context).appBarTheme.titleTextStyle),
+          Text('EcoRuta', style: Theme.of(context).appBarTheme.titleTextStyle),
         ],
       ),
       actions: [
@@ -135,13 +134,10 @@ class _MobileHomeLayoutState extends ConsumerState<_MobileHomeLayout> {
           builder: (context, ref, _) {
             final isOnline = ref.watch(connectivityProvider);
             return IconButton(
-              onPressed: () =>
-                  ref.read(connectivityProvider.notifier).toggle(),
+              onPressed: () => ref.read(connectivityProvider.notifier).toggle(),
               icon: Icon(
                 isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                color: isOnline
-                    ? EcoRutaColors.secondary
-                    : EcoRutaColors.error,
+                color: isOnline ? EcoRutaColors.secondary : EcoRutaColors.error,
               ),
               tooltip: isOnline ? 'Conectado' : 'Sin conexión',
             );
@@ -235,13 +231,11 @@ class _WideHomeLayoutState extends ConsumerState<_WideHomeLayout> {
                     const SizedBox(width: 10),
                     Text(
                       'EcoRuta',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(
-                            color: EcoRutaColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: EcoRutaColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                     ),
                   ],
                 ),
@@ -265,9 +259,7 @@ class _WideHomeLayoutState extends ConsumerState<_WideHomeLayout> {
                       onPressed: () =>
                           ref.read(connectivityProvider.notifier).toggle(),
                       icon: Icon(
-                        isOnline
-                            ? Icons.wifi_rounded
-                            : Icons.wifi_off_rounded,
+                        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
                         color: isOnline
                             ? EcoRutaColors.secondary
                             : EcoRutaColors.error,
@@ -362,10 +354,7 @@ class _HomeTab extends ConsumerWidget {
   String get _municipioNombre => Municipio.municipiosPiloto
       .firstWhere((m) => m.id == (user.municipioAsignado ?? 0),
           orElse: () => const Municipio(
-              id: 0,
-              nombre: 'Sin asignar',
-              departamento: '',
-              codigoDane: ''))
+              id: 0, nombre: 'Sin asignar', departamento: '', codigoDane: ''))
       .nombre;
 
   @override
@@ -450,9 +439,7 @@ class _HomeTab extends ConsumerWidget {
                     ? null
                     : () => context.go('/finca/nueva'),
               ).animate().fadeIn(delay: 300.ms),
-
               const SizedBox(height: 12),
-
               QuickActionButton(
                 isPrimary: true,
                 icon: Icons.route_rounded,
@@ -460,9 +447,7 @@ class _HomeTab extends ConsumerWidget {
                 subtitle: 'Trazar recorrido de campo',
                 onTap: onSwitchToMap,
               ).animate().fadeIn(delay: 350.ms),
-
               const SizedBox(height: 12),
-
               QuickActionButton(
                 icon: Icons.analytics_rounded,
                 title: 'Capturar Indicadores',
@@ -481,18 +466,14 @@ class _HomeTab extends ConsumerWidget {
                 subtitle: 'Ver todas las fincas geolocalizadas',
                 onTap: onSwitchToMap,
               ).animate().fadeIn(delay: 300.ms),
-
               const SizedBox(height: 12),
-
               QuickActionButton(
                 icon: Icons.add_home_rounded,
                 title: 'Registrar Finca',
                 subtitle: 'Dar de alta un nuevo predio',
                 onTap: () => context.go('/finca/nueva'),
               ).animate().fadeIn(delay: 350.ms),
-
               const SizedBox(height: 12),
-
               QuickActionButton(
                 icon: Icons.assessment_rounded,
                 title: 'Generar Reporte',
@@ -501,9 +482,7 @@ class _HomeTab extends ConsumerWidget {
                 iconColor: EcoRutaColors.onTertiaryContainer,
                 onTap: () => context.go('/reportes'),
               ).animate().fadeIn(delay: 400.ms),
-
               const SizedBox(height: 12),
-
               QuickActionButton(
                 icon: Icons.manage_accounts_rounded,
                 title: 'Gestión de usuarios',
@@ -524,11 +503,15 @@ class _HomeTab extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            ...fincas.take(3).map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: FincaCard(
-                      finca: f, onTap: () => context.go('/finca/${f.id}')),
-                )),
+            ...(fincas.toList()
+                  ..sort((a, b) => (b.fechaRegistro ?? DateTime(1970))
+                      .compareTo(a.fechaRegistro ?? DateTime(1970))))
+                .take(3)
+                .map((f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: FincaCard(
+                          finca: f, onTap: () => context.go('/finca/${f.id}')),
+                    )),
 
             const SizedBox(height: 32),
           ],
@@ -557,13 +540,13 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
     final filtered = fincas.where((f) {
       final matchesSearch =
           f.nombre.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              f.propietario
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase());
+              f.propietario.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesMunicipio =
           _selectedMunicipio == null || f.municipioId == _selectedMunicipio;
       return matchesSearch && matchesMunicipio;
-    }).toList();
+    }).toList()
+      ..sort((a, b) => (b.fechaRegistro ?? DateTime(1970))
+          .compareTo(a.fechaRegistro ?? DateTime(1970)));
 
     return Column(
       children: [
@@ -623,8 +606,7 @@ class _FincasTabState extends ConsumerState<_FincasTab> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, i) => FincaCard(
                     finca: filtered[i],
-                    onTap: () =>
-                        context.go('/finca/${filtered[i].id}'),
+                    onTap: () => context.go('/finca/${filtered[i].id}'),
                   ),
                 ),
         ),
@@ -660,11 +642,9 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: isSelected
-                    ? Colors.white
-                    : EcoRutaColors.onSurfaceVariant,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w500,
+                color:
+                    isSelected ? Colors.white : EcoRutaColors.onSurfaceVariant,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
         ),
       ),
@@ -719,8 +699,7 @@ class _MoreTab extends ConsumerWidget {
             decoration: BoxDecoration(
               color: _roleColor(user.rol).withOpacity(0.1),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                  color: _roleColor(user.rol).withOpacity(0.4)),
+              border: Border.all(color: _roleColor(user.rol).withOpacity(0.4)),
             ),
             child: Text(
               user.rol.displayName,
@@ -867,11 +846,9 @@ class _SettingsTile extends StatelessWidget {
             color: EcoRutaColors.primaryContainer,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon,
-              color: EcoRutaColors.onPrimaryContainer, size: 20),
+          child: Icon(icon, color: EcoRutaColors.onPrimaryContainer, size: 20),
         ),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
         trailing: onTap != null
             ? const Icon(Icons.chevron_right_rounded,
@@ -906,23 +883,17 @@ class _ProfileCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: EcoRutaColors.primaryContainer,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                        color: EcoRutaColors.primaryFixed, width: 2),
+                    border:
+                        Border.all(color: EcoRutaColors.primaryFixed, width: 2),
                   ),
                   child: Center(
                     child: Text(
-                      user.nombre
-                          .split(' ')
-                          .map((n) => n[0])
-                          .take(2)
-                          .join(),
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(
-                            color: EcoRutaColors.onPrimaryContainer,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      user.nombre.split(' ').map((n) => n[0]).take(2).join(),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: EcoRutaColors.onPrimaryContainer,
+                                fontWeight: FontWeight.w700,
+                              ),
                     ),
                   ),
                 ),
@@ -951,8 +922,7 @@ class _ProfileCard extends StatelessWidget {
                       style: Theme.of(context)
                           .textTheme
                           .labelSmall
-                          ?.copyWith(
-                              color: EcoRutaColors.onSurfaceVariant)),
+                          ?.copyWith(color: EcoRutaColors.onSurfaceVariant)),
                   Text(
                     user.nombre,
                     style: Theme.of(context)
@@ -974,10 +944,9 @@ class _ProfileCard extends StatelessWidget {
                       const SizedBox(width: 2),
                       Text(
                         'Municipio: $municipio',
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: EcoRutaColors.onSurfaceVariant,
-                                ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: EcoRutaColors.onSurfaceVariant,
+                            ),
                       ),
                     ],
                   ),
@@ -1040,8 +1009,7 @@ class _PendingSyncCard extends StatelessWidget {
                   Text(
                     '$count registros por sincronizar — toca para gestionar',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: EcoRutaColors.onTertiaryFixed
-                              .withOpacity(0.9),
+                          color: EcoRutaColors.onTertiaryFixed.withOpacity(0.9),
                         ),
                   ),
                 ],
